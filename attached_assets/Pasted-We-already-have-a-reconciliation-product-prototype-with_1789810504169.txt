@@ -1,0 +1,621 @@
+We already have a reconciliation product prototype with:
+
+* A basic dashboard
+* Sidebar navigation
+* Zoho Books integration
+* Bank account integration
+* Dummy invoice data from Zoho Books
+* Dummy bank transaction/payment data
+* Existing application styling and design system
+
+We are building this product primarily for **IT services companies in India that have clients in both India and the US**.
+
+Most clients are on **monthly or quarterly retainers**, so one client can have many invoices and many corresponding payments over time.
+
+Do NOT rebuild the existing dashboard, sidebar, Zoho integration, or bank integration.
+
+Build two screens for the existing "Reconciliation" section:
+
+1. CLIENT RECONCILIATION KANBAN BOARD
+2. CLIENT RECONCILIATION DETAIL SCREEN
+
+Use the existing dummy data wherever possible. If additional data is required, create realistic dummy data consistent with the existing data.
+
+---
+
+# SCREEN 1 — CLIENT RECONCILIATION KANBAN
+
+The main reconciliation screen should be a Kanban board where each card represents ONE CLIENT, not an individual invoice.
+
+The purpose of the board is to allow a finance user to immediately understand which clients are fully reconciled and which clients require attention.
+
+Use these columns:
+
+### 1. Fully Reconciled
+
+Clients where all invoices that are due have been fully matched with received payments.
+
+Example card:
+
+Acme Technologies
+US Client
+Retainer • Monthly
+
+Invoices: 6
+Paid: $72,000
+Outstanding: $0
+
+Last payment:
+Sep 12, 2026
+
+Status:
+✓ Fully reconciled
+
+---
+
+### 2. Partially Paid
+
+Clients where payments have been received but the total amount received is less than the amount due.
+
+Example:
+
+TechNova Inc.
+US Client
+Retainer • Monthly
+
+Invoices: 8
+Invoiced: $96,000
+Received: $82,000
+Outstanding: $14,000
+
+Status:
+$14,000 outstanding
+
+---
+
+### 3. Payment Overdue
+
+Clients with invoices that are due but no corresponding payment has been received.
+
+Example:
+
+ABC Solutions
+India Client
+Retainer • Quarterly
+
+Invoice due:
+Sep 10, 2026
+
+Amount due:
+₹4,50,000
+
+Days overdue:
+9
+
+Status:
+Payment overdue
+
+---
+
+### 4. Payment Received — Unmatched
+
+Money has been received in the bank, but the system cannot confidently identify which invoice/client it belongs to.
+
+Example:
+
+GlobalSoft Inc.
+
+Bank received:
+$12,450
+
+Reference:
+WIRE-893421
+
+Potential match:
+3 invoices
+
+Status:
+Needs matching
+
+---
+
+### 5. Invoice Pending
+
+The system expects an invoice for the client based on their recurring retainer/billing schedule, but an invoice has not yet been raised.
+
+Example:
+
+FinEdge Labs
+US Client
+Retainer • Monthly
+
+Expected invoice:
+September 2026
+
+Expected amount:
+$8,000
+
+Status:
+Invoice not raised
+
+---
+
+### 6. Upcoming
+
+Invoice has been raised but payment is not currently expected because the invoice is not yet due.
+
+Example:
+
+DataCore Inc.
+US Client
+Retainer • Monthly
+
+Invoice:
+INV-2088
+
+Amount:
+$15,000
+
+Due:
+Oct 5, 2026
+
+Status:
+Upcoming
+
+---
+
+### 7. Exception
+
+Use this for reconciliation situations that need investigation and don't fit cleanly into the above categories.
+
+Examples:
+
+* Payment amount differs from invoice amount
+* Multiple invoices potentially match one payment
+* Payment appears to be short
+* Duplicate payment
+* Credit note affecting expected amount
+* Currency/FX difference
+* Unknown payment reference
+
+Example:
+
+CloudWorks Inc.
+
+Invoice:
+$20,000
+
+Payment received:
+$19,450
+
+Difference:
+$550
+
+Status:
+Reconciliation exception
+
+---
+
+## KANBAN CARD DESIGN
+
+Each client card should contain only the information needed to quickly understand its reconciliation state.
+
+Show:
+
+* Client name
+* Country / client location
+* Retainer frequency
+* Number of active/open invoices
+* Total invoiced amount
+* Total received amount
+* Outstanding amount
+* Most relevant status
+* Last payment date
+* Important warning/exception when applicable
+
+Do not overload the card with every invoice.
+
+Cards should be compact enough that multiple clients can be viewed at once.
+
+Add a small visual indication for the status, but keep the existing product's visual language.
+
+---
+
+## KANBAN INTERACTIONS
+
+The user should be able to:
+
+* Click a client card
+* Open the client's reconciliation detail screen
+* Filter clients
+* Search clients
+* Sort by:
+
+  * Outstanding amount
+  * Due date
+  * Last payment
+  * Client name
+* Filter by:
+
+  * India / US
+  * Monthly / Quarterly
+  * Status
+
+Add a summary at the top of the Kanban screen:
+
+Total Clients: 24
+Fully Reconciled: 13
+Needs Attention: 7
+Outstanding: $84,250
+Unmatched Payments: $18,400
+
+The numbers should come from the dummy data rather than being hardcoded independently from the underlying client/invoice/payment data.
+
+---
+
+# SCREEN 2 — CLIENT RECONCILIATION DETAIL
+
+When the user clicks a client card, open a dedicated client reconciliation detail screen.
+
+Example:
+
+# TechNova Inc.
+
+US Client
+Monthly Retainer
+Client since Jan 2025
+
+Show a concise summary at the top:
+
+Total Invoiced
+$96,000
+
+Total Received
+$82,000
+
+Outstanding
+$14,000
+
+Invoices
+8
+
+Payments
+7
+
+Reconciliation status:
+Partially Paid
+
+---
+
+# MAIN DETAIL LAYOUT
+
+The main content should have TWO clearly separated sides/panels.
+
+## LEFT — INVOICES
+
+Show all invoices raised for this client.
+
+Each invoice row should contain:
+
+* Invoice number
+* Invoice date
+* Billing period
+* Due date
+* Amount
+* Currency
+* Status
+* Matched payment
+
+Example:
+
+INV-2041
+Aug 2026 Retainer
+Issued: Aug 1
+Due: Aug 30
+$12,000
+✓ Paid
+
+INV-2058
+Sep 2026 Retainer
+Issued: Sep 1
+Due: Sep 30
+$12,000
+$12,000
+✓ Paid
+
+INV-2072
+Oct 2026 Retainer
+Issued: Oct 1
+Due: Oct 31
+$12,000
+$5,000 received
+⚠ Partially paid
+
+Allow the user to click an invoice to see additional information if needed.
+
+---
+
+# RIGHT — PAYMENTS RECEIVED
+
+Show all bank payments associated with this client.
+
+Each payment row should contain:
+
+* Payment date
+* Bank account
+* Transaction/reference
+* Amount
+* Currency
+* Matched invoice
+* Match status
+
+Example:
+
+Sep 3, 2026
+HDFC Bank •••• 4821
+WIRE-23891
+$12,000
+→ INV-2041
+✓ Matched
+
+Sep 5, 2026
+HDFC Bank •••• 4821
+WIRE-23918
+$12,000
+→ INV-2058
+✓ Matched
+
+Sep 18, 2026
+HDFC Bank •••• 4821
+WIRE-24122
+$5,000
+→ INV-2072
+⚠ Partial
+
+---
+
+# RECONCILIATION SUMMARY
+
+At the bottom of the screen, show a clear reconciliation calculation.
+
+For example:
+
+Total invoiced
+$96,000
+
+Payments received
+− $82,000
+
+Outstanding
+= $14,000
+
+Then clearly explain the outstanding amount:
+
+### $14,000 still to be received
+
+Break it down:
+
+INV-2072
+$7,000 remaining
+
+INV-2084
+$7,000 remaining
+
+---
+
+# WHEN EVERYTHING MATCHES
+
+For a fully reconciled client, show:
+
+Total invoiced
+$72,000
+
+Payments received
+− $72,000
+
+Outstanding
+$0
+
+Then:
+
+✓ Everything is reconciled
+
+All due invoices have been matched with payments received.
+
+---
+
+# WHEN THERE IS AN UNMATCHED PAYMENT
+
+For example:
+
+Invoice total:
+$20,000
+
+Payment received:
+$19,500
+
+Outstanding:
+$500
+
+Also show:
+
+### Reconciliation exception
+
+Payment received is $500 less than the invoice amount.
+
+Possible reasons:
+
+* Bank/payment fee
+* FX difference
+* Short payment
+* Other adjustment
+
+Show a CTA:
+
+"Investigate difference"
+
+Do not automatically decide the reason unless the dummy data explicitly contains that reason.
+
+---
+
+# WHEN A PAYMENT CANNOT BE MATCHED
+
+Show the payment separately:
+
+Unmatched payment
+$12,450
+Sep 18, 2026
+Reference: WIRE-893421
+
+Potential invoices:
+INV-2081 — $8,000
+INV-2082 — $4,500
+
+Allow a prototype action:
+
+"Match payment"
+
+This can open a simple matching interface where the user can select the invoice(s).
+
+---
+
+# MULTIPLE CURRENCIES
+
+Because this product is for Indian IT companies with US clients, support both:
+
+INR ₹
+USD $
+
+Do not convert currencies automatically in the UI unless the existing dummy data already has an exchange rate.
+
+Clearly display the currency beside each amount.
+
+For example:
+
+₹4,50,000
+
+$12,000
+
+---
+
+# IMPORTANT PRODUCT LOGIC
+
+The client status should be derived from the underlying invoices and payments.
+
+For example:
+
+IF:
+
+Total due invoices = total matched payments
+
+→ Fully Reconciled
+
+IF:
+
+Total payments < total due invoices AND payment exists
+
+→ Partially Paid
+
+IF:
+
+Invoice is due AND no payment exists
+
+→ Payment Overdue
+
+IF:
+
+Bank payment exists AND no invoice is confidently matched
+
+→ Payment Received — Unmatched
+
+IF:
+
+Expected billing period exists AND no invoice exists
+
+→ Invoice Pending
+
+IF:
+
+Invoice exists AND due date is in the future
+
+→ Upcoming
+
+IF:
+
+There is a discrepancy/ambiguous matching situation
+
+→ Exception
+
+Use the most important/current state when assigning a client to a Kanban column.
+
+---
+
+# DUMMY DATA
+
+Create enough realistic data to make the Kanban useful.
+
+Create approximately 15–20 clients.
+
+Mix:
+
+* Indian clients
+* US clients
+* Monthly retainers
+* Quarterly retainers
+* Fully paid clients
+* Partially paid clients
+* Overdue invoices
+* Unmatched payments
+* Clients where invoices haven't been raised
+* Upcoming invoices
+* Currency differences
+* Payment discrepancies
+
+Each client should have multiple invoices and payments where appropriate.
+
+Do not create random numbers independently. The invoice and payment data must logically correspond so that the reconciliation calculations are accurate.
+
+For example:
+
+Client:
+TechNova Inc.
+
+Invoices:
+$12,000
+$12,000
+$12,000
+$12,000
+
+Total:
+$48,000
+
+Payments:
+$12,000
+$12,000
+$8,000
+
+Total received:
+$32,000
+
+Outstanding:
+$16,000
+
+The UI must calculate this from the underlying data.
+
+---
+
+# OVERALL GOAL
+
+The reconciliation screen should feel like a finance team's operational workspace.
+
+The user should be able to answer three questions immediately:
+
+1. "Which clients are fully reconciled?"
+2. "Which clients need my attention?"
+3. "When I open a client, exactly where does the money mismatch occur?"
+
+Keep the interface information-dense but clean.
+
+Reuse the existing application's components, navigation, typography, spacing, and visual language.
+
+Do not introduce a new visual design system.

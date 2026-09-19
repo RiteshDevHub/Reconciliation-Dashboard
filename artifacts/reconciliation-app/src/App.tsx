@@ -33,6 +33,9 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import { ConnectBankPage } from '@/pages/connect-bank';
 import { BankStatementsPage } from '@/pages/bank-statements';
+import { ReconciliationKanbanPage } from '@/pages/ReconciliationKanbanPage';
+import { ReconciliationDetailPage } from '@/pages/ReconciliationDetailPage';
+import { ReconciliationProvider } from '@/data/ReconciliationContext';
 import { Link, Route, Switch, useLocation, Router as WouterRouter, Redirect } from 'wouter';
 import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
@@ -173,7 +176,7 @@ export function AppShell({ children, onImport }: { children: ReactNode; onImport
         <div className="mt-10 px-2 text-[10px] font-semibold uppercase tracking-[.18em] text-[#73808d]">Workspace</div>
         <nav className="mt-3 space-y-1">
           {navItems.map(({ href, label, icon: Icon, count }) => {
-            const active = location === href;
+            const active = location.startsWith(href);
             return <Link key={href} href={href} onClick={() => setMobileOpen(false)} data-testid={`link-nav-${label.toLowerCase().replaceAll(' ', '-')}`} className={`group flex items-center justify-between rounded-xl px-3 py-2.5 text-[13px] transition-colors ${active ? 'bg-[#303b48] text-white' : 'text-[#a7b0b8] hover:bg-white/5 hover:text-white'}`}>
               <span className="flex items-center gap-3"><Icon size={16} strokeWidth={active ? 2.2 : 1.7} /><span>{label}</span></span>
               {count && <span className={`rounded-full px-2 py-0.5 font-mono text-[10px] ${active ? 'bg-[#2d8cff] text-white' : 'bg-[#303a44] text-[#9da7b0]'}`}>{count}</span>}
@@ -225,7 +228,7 @@ export function AppShell({ children, onImport }: { children: ReactNode; onImport
         <header className="flex h-[72px] items-center justify-between border-b border-[#e6e2d8] bg-[#f7f5ef]/95 px-5 backdrop-blur-md md:px-10">
           <div className="flex items-center gap-3">
             <button className="rounded-lg p-2 text-[#5d6875] hover:bg-[#ebe8df] md:hidden" onClick={() => setMobileOpen(true)} data-testid="button-open-mobile-nav"><Menu size={20} /></button>
-            <div className="hidden items-center gap-2 text-[12px] text-[#7b8490] sm:flex"><span>ClearMatch</span><ChevronRight size={13} /><span className="text-[#26313e]">{location === '/dashboard' ? 'Overview' : location.slice(1).replaceAll('-', ' ')}</span></div>
+            <div className="hidden items-center gap-2 text-[12px] text-[#7b8490] sm:flex"><span>ClearMatch</span><ChevronRight size={13} /><span className="text-[#26313e]">{location.startsWith('/dashboard') ? 'Overview' : location.split('/')[1]?.replaceAll('-', ' ') || 'Overview'}</span></div>
             <div className="text-[14px] font-semibold tracking-[-.02em] text-[#26313e] sm:hidden">ClearMatch</div>
           </div>
           <div className="flex items-center gap-2.5">
@@ -1090,7 +1093,8 @@ function Router() {
       <Route path="/demo-zoho-login" component={() => <RequireAuth component={DemoZohoLoginPage} />} />
       <Route path="/connect-bank" component={() => <RequireZoho component={ConnectBankPage} />} />
       <Route path="/dashboard" component={() => <RequireOnboarding component={DashboardPage} />} />
-      <Route path="/reconciliation" component={() => <RequireOnboarding component={() => <SectionPage title="Reconciliation" kicker="Payment control" description="A focused queue for every receipt that needs a confident match, from bank movement to the right invoice." icon={ClipboardCheck} />} />} />
+      <Route path="/reconciliation" component={() => <RequireOnboarding component={ReconciliationKanbanPage} />} />
+      <Route path="/reconciliation/:clientId" component={() => <RequireOnboarding component={ReconciliationDetailPage} />} />
       <Route path="/invoices" component={() => <RequireOnboarding component={ZohoInvoicesPage} />} />
       <Route path="/bank-statements" component={() => <RequireOnboarding component={BankStatementsPage} />} />
       <Route component={NotFound} />
@@ -1124,7 +1128,9 @@ function ClerkProviderWithRoutes() {
         <TooltipProvider>
           <ClerkQueryClientCacheInvalidator />
           <RoutedErrorBoundary>
-            <Router />
+            <ReconciliationProvider>
+              <Router />
+            </ReconciliationProvider>
           </RoutedErrorBoundary>
           <Toaster />
         </TooltipProvider>
