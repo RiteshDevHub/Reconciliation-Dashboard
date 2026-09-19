@@ -1,6 +1,6 @@
-# [Project name]
+# ClearMatch
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A reconciliation dashboard for Indian finance teams to review Zoho Books invoices, bank statements, received payments, and unmatched receipts.
 
 ## Run & Operate
 
@@ -22,15 +22,21 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/reconciliation-app/src/App.tsx` — dashboard routes, sample reconciliation data, and local interactions
+- `artifacts/reconciliation-app/src/index.css` — visual tokens, typography, and responsive styling
+- `lib/api-spec/openapi.yaml` — source of truth for future backend API contracts
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- The first build is frontend-only and uses sample reconciliation data so the product can be evaluated before authorizing Zoho Books access.
+- All numbers use Indian currency formatting and the app's language is tailored to Indian finance operations.
+- The supplied design analysis is adapted to reconciliation workflows rather than copied as crypto product UI.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Overview of receipts, matching rate, unresolved payments, and open invoices
+- Reconciliation, invoices, and bank-statement views
+- Interactive Zoho Books connection, statement import, date filtering, sync, and payment review demonstrations
 
 ## User preferences
 
