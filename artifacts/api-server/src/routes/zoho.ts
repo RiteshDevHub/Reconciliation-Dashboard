@@ -5,6 +5,7 @@ import { desc, eq } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import { createOAuthState, encrypt, getRequestOrigin, safeReturnTo, verifyOAuthState } from "../lib/zohoOAuth";
 import { syncInvoicesForUser } from "../lib/zohoBooks";
+import { connectDemoZohoForUser } from "../lib/zohoDemo";
 
 const router: IRouter = Router();
 const ACCOUNTS_DOMAIN = "https://accounts.zoho.in";
@@ -193,6 +194,20 @@ router.post("/integrations/zoho/sync", async (req, res): Promise<void> => {
     }
     throw error;
   }
+});
+
+router.post("/integrations/zoho/demo", async (req, res): Promise<void> => {
+  const userId = userIdFromRequest(req);
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const connection = await connectDemoZohoForUser(userId);
+  res.json(GetZohoConnectionStatusResponse.parse({
+    connected: true,
+    organizationId: connection.organizationId,
+    organizationName: connection.organizationName,
+  }));
 });
 
 export default router;

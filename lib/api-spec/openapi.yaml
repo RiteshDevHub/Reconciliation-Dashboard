@@ -72,6 +72,20 @@ paths:
           description: Not authenticated
         "409":
           description: Zoho Books is not connected
+  /integrations/zoho/demo:
+    post:
+      operationId: connectZohoDemo
+      tags: [zoho]
+      summary: Connect a prototype Zoho Books workspace with realistic sample invoices
+      responses:
+        "200":
+          description: Demo workspace connection state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ZohoConnectionStatus"
+        "401":
+          description: Not authenticated
 components:
   schemas:
     HealthStatus:

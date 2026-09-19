@@ -54,3 +54,13 @@ export const SyncZohoInvoicesResponse = zod.object({
 })
 
 
+/**
+ * @summary Connect a prototype Zoho Books workspace with realistic sample invoices
+ */
+export const ConnectZohoDemoResponse = zod.object({
+  "connected": zod.boolean(),
+  "organizationId": zod.string().nullish(),
+  "organizationName": zod.string().nullish()
+})
+
+

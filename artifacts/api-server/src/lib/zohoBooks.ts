@@ -1,6 +1,7 @@
 import { db, zohoConnectionsTable, zohoInvoicesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { decrypt, encrypt } from "./zohoOAuth";
+import { isDemoZohoConnection } from "./zohoDemo";
 
 const ACCOUNTS_DOMAIN = "https://accounts.zoho.in";
 
@@ -59,6 +60,16 @@ export async function syncInvoicesForUser(userId: string): Promise<{ syncedCount
   const [connection] = await db.select().from(zohoConnectionsTable)
     .where(eq(zohoConnectionsTable.userId, userId)).limit(1);
   if (!connection?.organizationId) throw new Error("ZOHO_NOT_CONNECTED");
+
+  if (isDemoZohoConnection(connection.apiDomain)) {
+    const syncedAt = new Date();
+    const invoices = await db.select({ invoiceId: zohoInvoicesTable.invoiceId })
+      .from(zohoInvoicesTable)
+      .where(eq(zohoInvoicesTable.userId, userId));
+    await db.update(zohoInvoicesTable).set({ syncedAt })
+      .where(eq(zohoInvoicesTable.userId, userId));
+    return { syncedCount: invoices.length, syncedAt };
+  }
 
   const token = await usableAccessToken(connection);
   const allInvoices: ZohoInvoicePayload[] = [];

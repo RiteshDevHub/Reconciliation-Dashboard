@@ -359,3 +359,77 @@ export const useSyncZohoInvoices = <TError = ErrorType<void>,
       return useMutation(getSyncZohoInvoicesMutationOptions(options));
     }
 
+export const getConnectZohoDemoUrl = () => {
+
+
+
+
+  return `/api/integrations/zoho/demo`
+}
+
+/**
+ * @summary Connect a prototype Zoho Books workspace with realistic sample invoices
+ */
+export const connectZohoDemo = async ( options?: Parameters<typeof customFetch>[1]): Promise<ZohoConnectionStatus> => {
+
+  return customFetch<ZohoConnectionStatus>(getConnectZohoDemoUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getConnectZohoDemoMutationKey = () => ['connectZohoDemo'] as const;
+
+export const getConnectZohoDemoMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof connectZohoDemo>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof connectZohoDemo>>, TError,void, TContext> => {
+
+const mutationKey = getConnectZohoDemoMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof connectZohoDemo>>, void> = () => {
+
+
+          return  connectZohoDemo(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConnectZohoDemoMutationResult = NonNullable<Awaited<ReturnType<typeof connectZohoDemo>>>
+
+    export type ConnectZohoDemoMutationError = ErrorType<void>
+
+
+    /**
+ * @summary Connect a prototype Zoho Books workspace with realistic sample invoices
+ */
+export const useConnectZohoDemo = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof connectZohoDemo>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof connectZohoDemo>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getConnectZohoDemoMutationOptions(options));
+    }
+

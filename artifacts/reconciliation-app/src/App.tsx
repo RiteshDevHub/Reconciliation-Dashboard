@@ -35,7 +35,7 @@ import { Link, Route, Switch, useLocation, Router as WouterRouter, Redirect } fr
 import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
-import { useGetZohoConnectionStatus, getGetZohoConnectionStatusQueryKey, useListZohoInvoices, useSyncZohoInvoices, getListZohoInvoicesQueryKey } from '@workspace/api-client-react';
+import { useGetZohoConnectionStatus, getGetZohoConnectionStatusQueryKey, useListZohoInvoices, useSyncZohoInvoices, getListZohoInvoicesQueryKey, useConnectZohoDemo } from '@workspace/api-client-react';
 
 const queryClient = new QueryClient();
 
@@ -350,6 +350,7 @@ function ZohoInvoicesPage() {
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(''), 2400); };
   
   const queryClient = useQueryClient();
+  const { data: connectionStatus } = useGetZohoConnectionStatus();
   const { data: invoices, isLoading, isError } = useListZohoInvoices();
   const syncMutation = useSyncZohoInvoices({
     mutation: {
@@ -384,6 +385,12 @@ function ZohoInvoicesPage() {
               </div>
               <h1 className="display mt-4 text-[46px] leading-none sm:text-[58px]">Invoices</h1>
               <p className="mt-4 max-w-[530px] text-[13px] leading-6 text-[#b4bec8]">Know what is paid, what is open, and which customer conversations deserve your attention next.</p>
+              {connectionStatus?.organizationName && (
+                <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#445261] bg-[#303945] px-3 py-1.5 text-[10px] font-semibold text-[#d8e5ef]">
+                  <span className="size-1.5 rounded-full bg-[#72d0a6]" />
+                  {connectionStatus.organizationName}
+                </div>
+              )}
             </div>
             <button 
               onClick={handleSync} 
@@ -454,12 +461,34 @@ function ZohoInvoicesPage() {
           </section>
           
           <section className="rounded-2xl border border-[#e4e0d7] bg-[#f0eee7] p-6 self-start">
-            <div className="text-[10px] font-semibold uppercase tracking-[.16em] text-[#929797]">Workspace signal</div>
-            <div className="mt-5 display text-[32px] leading-[.98] text-[#2a3541]">Everything you need,<br /><em>in one clear view.</em></div>
-            <p className="mt-5 text-[12px] leading-5 text-[#737b7e]">Keep your books, bank movement and decisions connected. This workspace updates as your team closes the queue.</p>
-            <div className="mt-6 flex items-center gap-2 rounded-xl bg-white/70 px-3 py-3 text-[11px] font-semibold text-[#247c57]">
-              <CheckCircle2 size={15} /> All connected sources are healthy
-            </div>
+             <div className="flex items-center justify-between">
+               <div className="text-[10px] font-semibold uppercase tracking-[.16em] text-[#929797]">Zoho connection</div>
+               <span className="rounded-full bg-[#d9eee3] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[.12em] text-[#247c57]">Connected</span>
+             </div>
+             <div className="mt-5 text-[18px] font-semibold text-[#2a3541]">{connectionStatus?.organizationName ?? 'Zoho Books workspace'}</div>
+             <p className="mt-2 text-[11px] leading-5 text-[#737b7e]">Invoice data is stored per user and synchronized through the connected organization.</p>
+
+             <div className="mt-6 grid grid-cols-2 gap-3">
+               <div className="rounded-xl border border-white/80 bg-white/70 p-4">
+                 <div className="mono text-[22px] text-[#263441]">{invoices?.length ?? '—'}</div>
+                 <div className="mt-1 text-[10px] font-medium text-[#81888b]">Invoices synced</div>
+               </div>
+               <div className="rounded-xl border border-white/80 bg-white/70 p-4">
+                 <div className="mono text-[15px] text-[#263441]">
+                   {[...new Set(invoices?.map((invoice) => invoice.currencyCode) ?? [])].join(' · ') || '—'}
+                 </div>
+                 <div className="mt-2 text-[10px] font-medium text-[#81888b]">Currencies</div>
+               </div>
+             </div>
+
+             <div className="mt-3 flex items-center gap-2 rounded-xl bg-white/70 px-3 py-3 text-[11px] font-semibold text-[#247c57]">
+               <CheckCircle2 size={15} /> Zoho Books sync is healthy
+             </div>
+             {invoices?.[0]?.syncedAt && (
+               <div className="mt-3 text-center text-[10px] text-[#8a9195]">
+                 Last synced {new Date(invoices[0].syncedAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}
+               </div>
+             )}
           </section>
         </div>
       </div>
@@ -769,6 +798,18 @@ function RequireZoho({ component: Component }: { component: React.ComponentType 
 
 function ConnectZohoPage() {
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
+  const demoMutation = useConnectZohoDemo({
+    mutation: {
+      onSuccess: async () => {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: getGetZohoConnectionStatusQueryKey() }),
+          queryClient.invalidateQueries({ queryKey: getListZohoInvoicesQueryKey() }),
+        ]);
+        setLocation('/dashboard');
+      },
+    },
+  });
   
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -829,9 +870,10 @@ function ConnectZohoPage() {
               <span className="grid size-16 place-items-center rounded-2xl bg-[#d8f1e7] text-[#19774e] border border-[#c4e9d7] shadow-sm"><Building2 size={28} /></span>
            </div>
            
+           <div className="mx-auto mb-4 w-fit rounded-full border border-[#b9dcff] bg-[#edf6ff] px-3 py-1 text-[10px] font-semibold uppercase tracking-[.14em] text-[#2476c9]">Prototype workspace</div>
            <h1 className="text-center text-[22px] font-semibold tracking-[-.02em] text-[#1c2430]">Connect Zoho Books</h1>
            <p className="mt-3 text-center text-[13.5px] leading-relaxed text-[#636e7a]">
-             ClearMatch needs access to your Zoho Books workspace to sync invoices and read payment data.
+              Explore the complete integration using a secure demo workspace populated with realistic invoices.
            </p>
 
            <div className="mt-8 space-y-3 bg-[#faf9f5] border border-[#ece9e2] rounded-xl p-5 shadow-inner">
@@ -849,12 +891,33 @@ function ConnectZohoPage() {
               </div>
            </div>
 
-           <a href={authUrl} className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-[#2d8cff] py-3.5 text-[14px] font-semibold text-white shadow-[0_5px_15px_rgba(45,140,255,.18)] transition hover:bg-[#1877e4]">
-             Connect workspace <ArrowUpRight size={16} />
+           <button
+             type="button"
+             onClick={() => demoMutation.mutate()}
+             disabled={demoMutation.isPending}
+             className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-[#2d8cff] py-3.5 text-[14px] font-semibold text-white shadow-[0_5px_15px_rgba(45,140,255,.18)] transition hover:bg-[#1877e4] disabled:cursor-not-allowed disabled:opacity-60"
+             data-testid="button-connect-demo-zoho"
+           >
+             {demoMutation.isPending ? <RefreshCw size={16} className="animate-spin" /> : <Building2 size={16} />}
+             {demoMutation.isPending ? 'Preparing demo workspace...' : 'Use demo Zoho Books account'}
+           </button>
+
+           {demoMutation.isError && (
+             <div className="mt-3 rounded-xl border border-[#f0c9bd] bg-[#fff6f3] px-4 py-3 text-center text-[12px] text-[#a54b35]">
+               We couldn't prepare the demo workspace. Please try again.
+             </div>
+           )}
+
+           <div className="my-5 flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[.14em] text-[#a0a6ab]">
+             <span className="h-px flex-1 bg-[#e8e5dd]" /> or <span className="h-px flex-1 bg-[#e8e5dd]" />
+           </div>
+
+           <a href={authUrl} className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#d9d5ca] bg-white py-3 text-[13px] font-semibold text-[#4b5966] transition hover:bg-[#faf9f5]">
+             Connect a live Zoho account <ArrowUpRight size={15} />
            </a>
            
-           <p className="mt-6 text-center text-[11px] text-[#8e959b]">
-             You will be redirected to Zoho to approve access.
+           <p className="mt-5 text-center text-[11px] leading-5 text-[#8e959b]">
+             Demo data includes Indian and US customers in INR and USD. No Zoho credentials are required.
            </p>
         </div>
       </div>
