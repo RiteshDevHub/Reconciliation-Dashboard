@@ -40,6 +40,38 @@ paths:
                 $ref: "#/components/schemas/ZohoConnectionStatus"
         "401":
           description: Not authenticated
+  /integrations/zoho/invoices:
+    get:
+      operationId: listZohoInvoices
+      tags: [zoho]
+      summary: List invoices imported from the signed-in user's Zoho Books account
+      responses:
+        "200":
+          description: Imported invoices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ZohoInvoice"
+        "401":
+          description: Not authenticated
+  /integrations/zoho/sync:
+    post:
+      operationId: syncZohoInvoices
+      tags: [zoho]
+      summary: Refresh invoices from the signed-in user's Zoho Books account
+      responses:
+        "200":
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ZohoSyncResult"
+        "401":
+          description: Not authenticated
+        "409":
+          description: Zoho Books is not connected
 components:
   schemas:
     HealthStatus:
@@ -59,4 +91,38 @@ components:
           type: ["string", "null"]
         organizationName:
           type: ["string", "null"]
+    ZohoInvoice:
+      type: object
+      required: [invoiceId, invoiceNumber, customerName, status, invoiceDate, total, balance, currencyCode, syncedAt]
+      properties:
+        invoiceId:
+          type: string
+        invoiceNumber:
+          type: string
+        customerName:
+          type: string
+        status:
+          type: string
+        invoiceDate:
+          type: string
+        dueDate:
+          type: ["string", "null"]
+        total:
+          type: string
+        balance:
+          type: string
+        currencyCode:
+          type: string
+        syncedAt:
+          type: string
+          format: date-time
+    ZohoSyncResult:
+      type: object
+      required: [syncedCount, syncedAt]
+      properties:
+        syncedCount:
+          type: integer
+        syncedAt:
+          type: string
+          format: date-time
 

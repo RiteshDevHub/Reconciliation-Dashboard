@@ -35,7 +35,7 @@ import { Link, Route, Switch, useLocation, Router as WouterRouter, Redirect } fr
 import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
-import { useGetZohoConnectionStatus, getGetZohoConnectionStatusQueryKey } from '@workspace/api-client-react';
+import { useGetZohoConnectionStatus, getGetZohoConnectionStatusQueryKey, useListZohoInvoices, useSyncZohoInvoices, getListZohoInvoicesQueryKey } from '@workspace/api-client-react';
 
 const queryClient = new QueryClient();
 
@@ -147,11 +147,6 @@ const receiptRows: { id: string; name: string; reference: string; date: string; 
   { id: 'rcpt-05', name: 'Asteria Cloud Services', reference: 'Kotak •••• 0911', date: '16 Jun 2024', amount: '₹48,950', status: 'Matched', confidence: '100%' },
 ];
 
-const invoices = [
-  { id: 'INV-2406-118', customer: 'Narayana Health Labs', due: '18 Jun 2024', amount: '₹1,26,780', status: 'Open' },
-  { id: 'INV-2406-109', customer: 'Indus Retail Group', due: '15 Jun 2024', amount: '₹2,14,200', status: 'Part paid' },
-  { id: 'INV-2406-087', customer: 'Bharat Forge Systems', due: '12 Jun 2024', amount: '₹2,84,500', status: 'Paid' },
-];
 
 // --- Pages & Components ---
 
@@ -347,7 +342,130 @@ function SectionPage({ title, kicker, description, icon: Icon }: { title: string
   const [location] = useLocation();
   const [toast, setToast] = useState('');
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(''), 2400); };
-  return <AppShell onImport={() => notify('Open Overview to import a statement')}><div className="mx-auto max-w-[1380px] px-5 py-10 md:px-10 md:py-14"><div className="animate-rise rounded-2xl bg-[#242b35] px-6 py-8 text-white sm:px-10 sm:py-10"><div className="flex items-start justify-between"><div><div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.2em] text-[#86baff]"><Icon size={13} /> {kicker}</div><h1 className="display mt-4 text-[46px] leading-none sm:text-[58px]">{title}</h1><p className="mt-4 max-w-[530px] text-[13px] leading-6 text-[#b4bec8]">{description}</p></div><button onClick={() => notify('View refreshed')} className="rounded-full border border-[#51606f] p-2.5 text-[#abb7c2] hover:border-[#8292a2] hover:text-white" data-testid="button-refresh-section"><RefreshCw size={15} /></button></div></div><div className="mt-6 grid gap-5 lg:grid-cols-[1.25fr_.75fr]"><section className="rounded-2xl border border-[#e4e0d7] bg-white p-5 sm:p-6"><div className="flex items-center justify-between border-b border-[#efede8] pb-4"><div><h2 className="text-[15px] font-semibold text-[#303b47]">Work queue</h2><p className="mt-1 text-[11px] text-[#8b9299]">Your most recent finance activity</p></div><button onClick={() => notify('Export prepared')} className="flex items-center gap-2 rounded-full border border-[#ddd9cf] px-3 py-2 text-[11px] font-semibold text-[#5e6c77] hover:bg-[#faf9f5]" data-testid="button-export-section"><ArrowDownToLine size={13} /> Export</button></div><div className="divide-y divide-[#efede8]">{(location === '/invoices' ? invoices : receiptRows).map((item, index) => { const name = 'customer' in item ? item.customer : item.name; const amount = item.amount; const status = 'status' in item ? item.status : 'Matched'; return <div key={index} className="flex items-center justify-between gap-3 py-4"><div><div className="text-[12px] font-semibold text-[#35414d]">{name}</div><div className="mono mt-1 text-[10px] text-[#99a0a5]">{'reference' in item ? item.reference : item.id}</div></div><div className="flex items-center gap-4"><span className="mono text-[12px] text-[#35414d]">{amount}</span><StatusPill status={status} /></div></div>; })}</div></section><section className="rounded-2xl border border-[#e4e0d7] bg-[#f0eee7] p-6"><div className="text-[10px] font-semibold uppercase tracking-[.16em] text-[#929797]">Workspace signal</div><div className="mt-5 display text-[32px] leading-[.98] text-[#2a3541]">Everything you need,<br /><em>in one clear view.</em></div><p className="mt-5 text-[12px] leading-5 text-[#737b7e]">Keep your books, bank movement and decisions connected. This workspace updates as your team closes the queue.</p><div className="mt-6 flex items-center gap-2 rounded-xl bg-white/70 px-3 py-3 text-[11px] font-semibold text-[#247c57]"><CheckCircle2 size={15} /> All connected sources are healthy</div></section></div></div>{toast && <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[#27333e] px-5 py-3 text-[12px] text-white shadow-xl" data-testid="status-section-toast">{toast}</div>}</AppShell>;
+  return <AppShell onImport={() => notify('Open Overview to import a statement')}><div className="mx-auto max-w-[1380px] px-5 py-10 md:px-10 md:py-14"><div className="animate-rise rounded-2xl bg-[#242b35] px-6 py-8 text-white sm:px-10 sm:py-10"><div className="flex items-start justify-between"><div><div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.2em] text-[#86baff]"><Icon size={13} /> {kicker}</div><h1 className="display mt-4 text-[46px] leading-none sm:text-[58px]">{title}</h1><p className="mt-4 max-w-[530px] text-[13px] leading-6 text-[#b4bec8]">{description}</p></div><button onClick={() => notify('View refreshed')} className="rounded-full border border-[#51606f] p-2.5 text-[#abb7c2] hover:border-[#8292a2] hover:text-white" data-testid="button-refresh-section"><RefreshCw size={15} /></button></div></div><div className="mt-6 grid gap-5 lg:grid-cols-[1.25fr_.75fr]"><section className="rounded-2xl border border-[#e4e0d7] bg-white p-5 sm:p-6"><div className="flex items-center justify-between border-b border-[#efede8] pb-4"><div><h2 className="text-[15px] font-semibold text-[#303b47]">Work queue</h2><p className="mt-1 text-[11px] text-[#8b9299]">Your most recent finance activity</p></div><button onClick={() => notify('Export prepared')} className="flex items-center gap-2 rounded-full border border-[#ddd9cf] px-3 py-2 text-[11px] font-semibold text-[#5e6c77] hover:bg-[#faf9f5]" data-testid="button-export-section"><ArrowDownToLine size={13} /> Export</button></div><div className="divide-y divide-[#efede8]">{receiptRows.map((item, index) => { const name = item.name; const amount = item.amount; const status = item.status; return <div key={index} className="flex items-center justify-between gap-3 py-4"><div><div className="text-[12px] font-semibold text-[#35414d]">{name}</div><div className="mono mt-1 text-[10px] text-[#99a0a5]">{item.reference}</div></div><div className="flex items-center gap-4"><span className="mono text-[12px] text-[#35414d]">{amount}</span><StatusPill status={status} /></div></div>; })}</div></section><section className="rounded-2xl border border-[#e4e0d7] bg-[#f0eee7] p-6"><div className="text-[10px] font-semibold uppercase tracking-[.16em] text-[#929797]">Workspace signal</div><div className="mt-5 display text-[32px] leading-[.98] text-[#2a3541]">Everything you need,<br /><em>in one clear view.</em></div><p className="mt-5 text-[12px] leading-5 text-[#737b7e]">Keep your books, bank movement and decisions connected. This workspace updates as your team closes the queue.</p><div className="mt-6 flex items-center gap-2 rounded-xl bg-white/70 px-3 py-3 text-[11px] font-semibold text-[#247c57]"><CheckCircle2 size={15} /> All connected sources are healthy</div></section></div></div>{toast && <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[#27333e] px-5 py-3 text-[12px] text-white shadow-xl" data-testid="status-section-toast">{toast}</div>}</AppShell>;
+}
+
+function ZohoInvoicesPage() {
+  const [toast, setToast] = useState('');
+  const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(''), 2400); };
+  
+  const queryClient = useQueryClient();
+  const { data: invoices, isLoading, isError } = useListZohoInvoices();
+  const syncMutation = useSyncZohoInvoices({
+    mutation: {
+      onSuccess: (data) => {
+        queryClient.invalidateQueries({ queryKey: getListZohoInvoicesQueryKey() });
+        notify(`Synced ${data.syncedCount} invoices successfully`);
+      },
+      onError: () => {
+        notify('Failed to sync invoices. Please try again.');
+      }
+    }
+  });
+
+  const handleSync = () => {
+    syncMutation.mutate();
+  };
+
+  const formatAmount = (amount: string, currencyCode: string) => {
+    const num = parseFloat(amount);
+    if (isNaN(num)) return amount;
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: currencyCode }).format(num);
+  };
+
+  return (
+    <AppShell onImport={() => notify('Open Overview to import a statement')}>
+      <div className="mx-auto max-w-[1380px] px-5 py-10 md:px-10 md:py-14">
+        <div className="animate-rise rounded-2xl bg-[#242b35] px-6 py-8 text-white sm:px-10 sm:py-10">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.2em] text-[#86baff]">
+                <FileSpreadsheet size={13} /> Zoho Books
+              </div>
+              <h1 className="display mt-4 text-[46px] leading-none sm:text-[58px]">Invoices</h1>
+              <p className="mt-4 max-w-[530px] text-[13px] leading-6 text-[#b4bec8]">Know what is paid, what is open, and which customer conversations deserve your attention next.</p>
+            </div>
+            <button 
+              onClick={handleSync} 
+              disabled={syncMutation.isPending}
+              className="rounded-full border border-[#51606f] p-2.5 text-[#abb7c2] hover:border-[#8292a2] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed" 
+              data-testid="button-sync-invoices"
+            >
+              <RefreshCw size={15} className={syncMutation.isPending ? "animate-spin" : ""} />
+            </button>
+          </div>
+        </div>
+        
+        <div className="mt-6 grid gap-5 lg:grid-cols-[1.25fr_.75fr]">
+          <section className="rounded-2xl border border-[#e4e0d7] bg-white p-5 sm:p-6">
+            <div className="flex items-center justify-between border-b border-[#efede8] pb-4">
+              <div>
+                <h2 className="text-[15px] font-semibold text-[#303b47]">Work queue</h2>
+                <p className="mt-1 text-[11px] text-[#8b9299]">Your most recent finance activity</p>
+              </div>
+              <button onClick={() => notify('Export prepared')} className="flex items-center gap-2 rounded-full border border-[#ddd9cf] px-3 py-2 text-[11px] font-semibold text-[#5e6c77] hover:bg-[#faf9f5]" data-testid="button-export-section">
+                <ArrowDownToLine size={13} /> Export
+              </button>
+            </div>
+            <div className="divide-y divide-[#efede8]">
+              {isLoading && (
+                <div className="py-12 text-center text-[#73808d] flex flex-col items-center">
+                   <div className="size-6 rounded-full border-2 border-[#2d8cff] border-t-transparent animate-spin mb-3"></div>
+                   <div className="text-[12px] font-medium">Loading invoices...</div>
+                </div>
+              )}
+              {isError && (
+                <div className="py-12 text-center flex flex-col items-center">
+                   <CircleAlert size={24} className="text-[#e39b4f] mb-3" />
+                   <div className="text-[13px] font-medium text-[#1c2430]">Failed to load invoices</div>
+                   <div className="text-[11px] text-[#636e7a] mt-1">Check your connection and try again.</div>
+                   <button onClick={() => queryClient.invalidateQueries({ queryKey: getListZohoInvoicesQueryKey() })} className="mt-4 text-[11px] font-semibold text-[#2d8cff]">Try again</button>
+                </div>
+              )}
+              {!isLoading && !isError && invoices?.length === 0 && (
+                <div className="py-12 text-center text-[#73808d] flex flex-col items-center">
+                   <FileSpreadsheet size={24} className="text-[#dcd6c8] mb-3" />
+                   <div className="text-[13px] font-medium text-[#1c2430]">No invoices found</div>
+                   <div className="text-[11px] text-[#636e7a] mt-1">Sync with Zoho Books to pull your latest data.</div>
+                </div>
+              )}
+              {!isLoading && !isError && invoices && invoices.map((invoice) => (
+                <div key={invoice.invoiceId} className="flex items-center justify-between gap-3 py-4">
+                  <div>
+                    <div className="text-[12px] font-semibold text-[#35414d]">{invoice.customerName}</div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="mono text-[10px] text-[#99a0a5]">{invoice.invoiceNumber}</span>
+                      <span className="text-[10px] text-[#b0b7bc]">·</span>
+                      <span className="text-[10px] text-[#99a0a5]">{new Date(invoice.invoiceDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <span className="mono text-[12px] text-[#35414d] block">{formatAmount(invoice.total, invoice.currencyCode)}</span>
+                      {parseFloat(invoice.balance) > 0 && parseFloat(invoice.balance) !== parseFloat(invoice.total) && (
+                        <span className="mono text-[9px] text-[#e39b4f] mt-0.5 block">Bal: {formatAmount(invoice.balance, invoice.currencyCode)}</span>
+                      )}
+                    </div>
+                    <StatusPill status={invoice.status === 'paid' ? 'Paid' : invoice.status === 'sent' ? 'Open' : invoice.status === 'partially_paid' ? 'Part paid' : invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1).replace('_', ' ')} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+          
+          <section className="rounded-2xl border border-[#e4e0d7] bg-[#f0eee7] p-6 self-start">
+            <div className="text-[10px] font-semibold uppercase tracking-[.16em] text-[#929797]">Workspace signal</div>
+            <div className="mt-5 display text-[32px] leading-[.98] text-[#2a3541]">Everything you need,<br /><em>in one clear view.</em></div>
+            <p className="mt-5 text-[12px] leading-5 text-[#737b7e]">Keep your books, bank movement and decisions connected. This workspace updates as your team closes the queue.</p>
+            <div className="mt-6 flex items-center gap-2 rounded-xl bg-white/70 px-3 py-3 text-[11px] font-semibold text-[#247c57]">
+              <CheckCircle2 size={15} /> All connected sources are healthy
+            </div>
+          </section>
+        </div>
+      </div>
+      {toast && <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[#27333e] px-5 py-3 text-[12px] text-white shadow-xl" data-testid="status-section-toast">{toast}</div>}
+    </AppShell>
+  );
 }
 
 // --- Marketing Landing Page ---
@@ -749,7 +867,7 @@ function Router() {
       <Route path="/connect-zoho" component={() => <RequireAuth component={ConnectZohoPage} />} />
       <Route path="/dashboard" component={() => <RequireZoho component={DashboardPage} />} />
       <Route path="/reconciliation" component={() => <RequireZoho component={() => <SectionPage title="Reconciliation" kicker="Payment control" description="A focused queue for every receipt that needs a confident match, from bank movement to the right invoice." icon={ClipboardCheck} />} />} />
-      <Route path="/invoices" component={() => <RequireZoho component={() => <SectionPage title="Invoices" kicker="Zoho Books" description="Know what is paid, what is open, and which customer conversations deserve your attention next." icon={FileSpreadsheet} />} />} />
+      <Route path="/invoices" component={() => <RequireZoho component={ZohoInvoicesPage} />} />
       <Route path="/bank-statements" component={() => <RequireZoho component={() => <SectionPage title="Bank statements" kicker="Source records" description="Bring statements into one dependable place and keep a clean line from imported movement to final decision." icon={Landmark} />} />} />
       <Route component={NotFound} />
     </Switch>

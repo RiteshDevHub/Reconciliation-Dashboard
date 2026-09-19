@@ -27,3 +27,30 @@ export const GetZohoConnectionStatusResponse = zod.object({
 })
 
 
+/**
+ * @summary List invoices imported from the signed-in user's Zoho Books account
+ */
+export const ListZohoInvoicesResponseItem = zod.object({
+  "invoiceId": zod.string(),
+  "invoiceNumber": zod.string(),
+  "customerName": zod.string(),
+  "status": zod.string(),
+  "invoiceDate": zod.string(),
+  "dueDate": zod.string().nullish(),
+  "total": zod.string(),
+  "balance": zod.string(),
+  "currencyCode": zod.string(),
+  "syncedAt": zod.coerce.date()
+})
+export const ListZohoInvoicesResponse = zod.array(ListZohoInvoicesResponseItem)
+
+
+/**
+ * @summary Refresh invoices from the signed-in user's Zoho Books account
+ */
+export const SyncZohoInvoicesResponse = zod.object({
+  "syncedCount": zod.number().int(),
+  "syncedAt": zod.coerce.date()
+})
+
+

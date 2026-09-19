@@ -1,11 +1,13 @@
 import { getAuth } from "@clerk/express";
-import { db, zohoConnectionsTable } from "@workspace/db";
-import { GetZohoConnectionStatusResponse } from "@workspace/api-zod";
-import { eq } from "drizzle-orm";
+import { db, zohoConnectionsTable, zohoInvoicesTable } from "@workspace/db";
+import { GetZohoConnectionStatusResponse, ListZohoInvoicesResponse, SyncZohoInvoicesResponse } from "@workspace/api-zod";
+import { desc, eq } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import { createOAuthState, encrypt, getRequestOrigin, safeReturnTo, verifyOAuthState } from "../lib/zohoOAuth";
+import { syncInvoicesForUser } from "../lib/zohoBooks";
 
 const router: IRouter = Router();
+const ACCOUNTS_DOMAIN = "https://accounts.zoho.in";
 
 function userIdFromRequest(req: Parameters<typeof getAuth>[0]): string | null {
   const auth = getAuth(req);
@@ -55,7 +57,7 @@ router.get("/integrations/zoho/authorize", (req, res): void => {
     redirect_uri: redirectUri,
     state,
   });
-  res.redirect(`https://accounts.zoho.com/oauth/v2/auth?${params.toString()}`);
+  res.redirect(`${ACCOUNTS_DOMAIN}/oauth/v2/auth?${params.toString()}`);
 });
 
 router.get("/integrations/zoho/callback", async (req, res): Promise<void> => {
@@ -79,7 +81,7 @@ router.get("/integrations/zoho/callback", async (req, res): Promise<void> => {
   if (!clientId || !clientSecret) throw new Error("Zoho OAuth credentials are required");
   const origin = getRequestOrigin(req);
   const redirectUri = `${origin}/api/integrations/zoho/callback`;
-  const tokenResponse = await fetch("https://accounts.zoho.com/oauth/v2/token", {
+  const tokenResponse = await fetch(`${ACCOUNTS_DOMAIN}/oauth/v2/token`, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -137,7 +139,60 @@ router.get("/integrations/zoho/callback", async (req, res): Promise<void> => {
     },
   });
 
+  try {
+    await syncInvoicesForUser(verified.userId);
+  } catch (error) {
+    req.log.warn({ error }, "Initial Zoho invoice sync failed");
+  }
+
   res.redirect(`${verified.returnTo}${verified.returnTo.includes("?") ? "&" : "?"}zoho=connected`);
+});
+
+router.get("/integrations/zoho/invoices", async (req, res): Promise<void> => {
+  const userId = userIdFromRequest(req);
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const invoices = await db.select({
+    invoiceId: zohoInvoicesTable.invoiceId,
+    invoiceNumber: zohoInvoicesTable.invoiceNumber,
+    customerName: zohoInvoicesTable.customerName,
+    status: zohoInvoicesTable.status,
+    invoiceDate: zohoInvoicesTable.invoiceDate,
+    dueDate: zohoInvoicesTable.dueDate,
+    total: zohoInvoicesTable.total,
+    balance: zohoInvoicesTable.balance,
+    currencyCode: zohoInvoicesTable.currencyCode,
+    syncedAt: zohoInvoicesTable.syncedAt,
+  }).from(zohoInvoicesTable)
+    .where(eq(zohoInvoicesTable.userId, userId))
+    .orderBy(desc(zohoInvoicesTable.invoiceDate));
+  res.json(ListZohoInvoicesResponse.parse(invoices.map((invoice) => ({
+    ...invoice,
+    syncedAt: invoice.syncedAt.toISOString(),
+  }))));
+});
+
+router.post("/integrations/zoho/sync", async (req, res): Promise<void> => {
+  const userId = userIdFromRequest(req);
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  try {
+    const result = await syncInvoicesForUser(userId);
+    res.json(SyncZohoInvoicesResponse.parse({
+      syncedCount: result.syncedCount,
+      syncedAt: result.syncedAt.toISOString(),
+    }));
+  } catch (error) {
+    if (error instanceof Error && error.message === "ZOHO_NOT_CONNECTED") {
+      res.status(409).json({ error: "Zoho Books is not connected" });
+      return;
+    }
+    throw error;
+  }
 });
 
 export default router;

@@ -6,18 +6,24 @@
  * OpenAPI spec version: 0.1.0
  */
 import {
+  useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
 
 import type {
   HealthStatus,
-  ZohoConnectionStatus
+  ZohoConnectionStatus,
+  ZohoInvoice,
+  ZohoSyncResult
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -201,4 +207,155 @@ export function useGetZohoConnectionStatus<TData = Awaited<ReturnType<typeof get
 
 
 
+
+export const getListZohoInvoicesUrl = () => {
+
+
+
+
+  return `/api/integrations/zoho/invoices`
+}
+
+/**
+ * @summary List invoices imported from the signed-in user's Zoho Books account
+ */
+export const listZohoInvoices = async ( options?: Parameters<typeof customFetch>[1]): Promise<ZohoInvoice[]> => {
+
+  return customFetch<ZohoInvoice[]>(getListZohoInvoicesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListZohoInvoicesQueryKey = () => {
+    return [
+    `/api/integrations/zoho/invoices`
+    ] as const;
+    }
+
+
+export const getListZohoInvoicesQueryOptions = <TData = Awaited<ReturnType<typeof listZohoInvoices>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listZohoInvoices>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListZohoInvoicesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listZohoInvoices>>> = ({ signal }) => listZohoInvoices({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listZohoInvoices>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListZohoInvoicesQueryResult = NonNullable<Awaited<ReturnType<typeof listZohoInvoices>>>
+export type ListZohoInvoicesQueryError = ErrorType<void>
+
+
+/**
+ * @summary List invoices imported from the signed-in user's Zoho Books account
+ */
+
+export function useListZohoInvoices<TData = Awaited<ReturnType<typeof listZohoInvoices>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listZohoInvoices>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListZohoInvoicesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSyncZohoInvoicesUrl = () => {
+
+
+
+
+  return `/api/integrations/zoho/sync`
+}
+
+/**
+ * @summary Refresh invoices from the signed-in user's Zoho Books account
+ */
+export const syncZohoInvoices = async ( options?: Parameters<typeof customFetch>[1]): Promise<ZohoSyncResult> => {
+
+  return customFetch<ZohoSyncResult>(getSyncZohoInvoicesUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getSyncZohoInvoicesMutationKey = () => ['syncZohoInvoices'] as const;
+
+export const getSyncZohoInvoicesMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncZohoInvoices>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof syncZohoInvoices>>, TError,void, TContext> => {
+
+const mutationKey = getSyncZohoInvoicesMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof syncZohoInvoices>>, void> = () => {
+
+
+          return  syncZohoInvoices(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SyncZohoInvoicesMutationResult = NonNullable<Awaited<ReturnType<typeof syncZohoInvoices>>>
+
+    export type SyncZohoInvoicesMutationError = ErrorType<void>
+
+
+    /**
+ * @summary Refresh invoices from the signed-in user's Zoho Books account
+ */
+export const useSyncZohoInvoices = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncZohoInvoices>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof syncZohoInvoices>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getSyncZohoInvoicesMutationOptions(options));
+    }
 

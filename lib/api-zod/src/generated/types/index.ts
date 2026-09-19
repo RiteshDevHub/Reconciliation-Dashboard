@@ -8,3 +8,5 @@
 
 export * from './healthStatus';
 export * from './zohoConnectionStatus';
+export * from './zohoInvoice';
+export * from './zohoSyncResult';

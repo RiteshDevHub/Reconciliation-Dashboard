@@ -37,6 +37,9 @@ A reconciliation dashboard for Indian finance teams to review Zoho Books invoice
 - Public marketing homepage for signed-out visitors with product previews built from the dashboard UI
 - Branded Google and email/password sign-in and sign-up through Clerk
 - Authenticated users land directly in the protected dashboard workspace
+- Signed-in users without a Zoho Books connection are routed through per-user Zoho OAuth onboarding
+- Zoho India OAuth tokens are encrypted at rest and scoped to each Clerk user
+- Invoices are imported from Zoho Books on connection and can be refreshed from the invoices screen
 - Overview of receipts, matching rate, unresolved payments, and open invoices
 - Reconciliation, invoices, and bank-statement views
 - Interactive Zoho Books connection, statement import, date filtering, sync, and payment review demonstrations
@@ -47,7 +50,8 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- The Zoho OAuth client is registered in the India data center, so authorization and token requests use `accounts.zoho.in`.
+- Register `/api/integrations/zoho/callback` for every development or production app origin in the Zoho API Console.
 
 ## Pointers
 

@@ -5,17 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-export interface HealthStatus {
-  status: string;
-}
-
-export interface ZohoConnectionStatus {
-  connected: boolean;
-  /** @nullable */
-  organizationId?: string | null;
-  /** @nullable */
-  organizationName?: string | null;
-}
 
 export interface ZohoInvoice {
   invoiceId: string;
@@ -28,11 +17,5 @@ export interface ZohoInvoice {
   total: string;
   balance: string;
   currencyCode: string;
-  syncedAt: string;
+  syncedAt: Date;
 }
-
-export interface ZohoSyncResult {
-  syncedCount: number;
-  syncedAt: string;
-}
-
