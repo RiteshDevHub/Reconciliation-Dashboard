@@ -112,7 +112,7 @@ export function ConnectBankPage() {
       <div className="mb-6 grid size-14 place-items-center rounded-2xl bg-[#eaf2fb] text-[#2d78c6]">
         <Landmark size={27} strokeWidth={1.7} />
       </div>
-      <div className="rounded-full border border-[#cfe1f2] bg-[#edf6ff] px-3 py-1 text-[9px] font-semibold uppercase tracking-[.14em] text-[#2674b9]">Step 4 of 4 · Demo</div>
+      <div className="rounded-full border border-[#cfe1f2] bg-[#edf6ff] px-3 py-1 text-[9px] font-semibold uppercase tracking-[.14em] text-[#2674b9]">Step 3 of 3 · Demo</div>
       <h1 className="mt-5 font-serif text-[36px] leading-tight tracking-[-.025em] text-[#1c2430]">Connect your bank accounts</h1>
       <p className="mt-4 max-w-[460px] text-[14px] leading-6 text-[#65717d]">
         We'll import your transactions and match payments against your Zoho Books invoices.
@@ -374,17 +374,18 @@ export function ConnectBankPage() {
 
       <div className="mt-10 flex flex-col gap-3 w-full max-w-[320px]">
         <button 
-          onClick={() => setLocation('/bank-statements')}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1c2430] py-3.5 text-[13px] font-semibold text-white shadow-md transition hover:bg-[#2d3748]"
-          data-testid="button-continue-bank-statements"
+          onClick={() => setLocation('/dashboard')}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2d8cff] py-3.5 text-[13px] font-semibold text-white shadow-[0_5px_15px_rgba(45,140,255,.18)] transition hover:bg-[#1877e4]"
+          data-testid="button-go-to-dashboard"
         >
-          View Bank Statements <ArrowRight size={16} />
+          Go to dashboard <ArrowRight size={16} />
         </button>
         <button 
-          onClick={() => setLocation('/dashboard')}
-          className="flex w-full items-center justify-center rounded-xl py-3.5 text-[13px] font-semibold text-[#65717d] transition hover:bg-[#f1f3f5] hover:text-[#1c2430]"
+          onClick={() => setLocation('/bank-statements')}
+          className="flex w-full items-center justify-center rounded-xl border border-[#d7dce1] bg-white py-3.5 text-[13px] font-semibold text-[#596672] transition hover:bg-[#f7f8fa] hover:text-[#1c2430]"
+          data-testid="button-view-bank-statements"
         >
-          Go to Dashboard
+          View bank statements
         </button>
       </div>
     </div>
@@ -403,11 +404,14 @@ export function ConnectBankPage() {
         </div>
       </div>
 
-      <div className="mb-7 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[.12em] text-[#89929c]">
+      <div className="mb-7 flex flex-wrap items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[.12em] text-[#89929c]">
+        <span className="grid size-5 place-items-center rounded-full bg-[#d8f1e7] text-[#19774e]">✓</span>
+        <span>Account</span>
+        <span className="h-px w-6 bg-[#d8d5ce]" />
         <span className="grid size-5 place-items-center rounded-full bg-[#d8f1e7] text-[#19774e]">✓</span>
         <span>Zoho Books</span>
-        <span className="h-px w-8 bg-[#d8d5ce]" />
-        <span className="grid size-5 place-items-center rounded-full bg-[#2d8cff] text-white">4</span>
+        <span className="h-px w-6 bg-[#d8d5ce]" />
+        <span className="grid size-5 place-items-center rounded-full bg-[#2d8cff] text-white">3</span>
         <span className="text-[#2476c9]">Bank account</span>
       </div>
 

@@ -749,6 +749,20 @@ function RequireAuth({ component: Component }: { component: React.ComponentType 
   );
 }
 
+function SignOutPage() {
+  const { signOut } = useClerk();
+
+  useEffect(() => {
+    void signOut({ redirectUrl: basePath || "/" });
+  }, [signOut]);
+
+  return (
+    <div className="flex min-h-[100dvh] items-center justify-center bg-[#f7f5ef]">
+      <RefreshCw size={24} className="animate-spin text-[#2d8cff]" />
+    </div>
+  );
+}
+
 function ZohoConnectionGate({ component: Component }: { component: React.ComponentType }) {
   const queryClient = useQueryClient();
   
@@ -887,6 +901,17 @@ function ConnectZohoPage() {
              <span className="grid size-10 place-items-center rounded-[12px] bg-[#2d8cff] text-white shadow-[0_5px_18px_rgba(45,140,255,.25)]"><Link2 size={20} strokeWidth={2.5} /></span>
              <span className="text-[20px] font-semibold tracking-[-.03em]">Clear<span className="text-[#7eb8ff]">Match</span></span>
           </div>
+        </div>
+
+        <div className="mb-7 flex flex-wrap items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[.12em] text-[#89929c]">
+          <span className="grid size-5 place-items-center rounded-full bg-[#d8f1e7] text-[#19774e]">✓</span>
+          <span>Account</span>
+          <span className="h-px w-6 bg-[#d8d5ce]" />
+          <span className="grid size-5 place-items-center rounded-full bg-[#2d8cff] text-white">2</span>
+          <span className="text-[#2476c9]">Zoho Books</span>
+          <span className="h-px w-6 bg-[#d8d5ce]" />
+          <span className="grid size-5 place-items-center rounded-full border border-[#d5d7d5] bg-white text-[#9aa1a6]">3</span>
+          <span>Bank account</span>
         </div>
 
         <div className="rounded-2xl border border-[#e4e0d7] bg-white p-8 md:p-10 shadow-xl relative overflow-hidden">
@@ -1060,6 +1085,7 @@ function Router() {
       <Route path="/" component={MarketingPage} />
       <Route path="/sign-in/*?" component={SignInPage} />
       <Route path="/sign-up/*?" component={SignUpPage} />
+      <Route path="/sign-out" component={SignOutPage} />
       <Route path="/connect-zoho" component={() => <RequireAuth component={ConnectZohoPage} />} />
       <Route path="/demo-zoho-login" component={() => <RequireAuth component={DemoZohoLoginPage} />} />
       <Route path="/connect-bank" component={() => <RequireZoho component={ConnectBankPage} />} />

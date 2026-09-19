@@ -14,3 +14,5 @@ Bank connection is the fourth and final onboarding step, not part of the authent
 **Why:** The user confirmed the full flow works well but found dashboard chrome during bank connection misleading because onboarding was not yet complete.
 
 **How to apply:** Changes to `/connect-bank` should retain standalone onboarding chrome, an explicit Zoho-complete → bank-account progression, and the existing dashboard gate.
+
+The visible onboarding progress has three user-facing steps: Account, Zoho Books, and Bank account. Show this same progress UI on both integration screens. On bank-import success, “Go to dashboard” is primary and “View bank statements” is secondary.
