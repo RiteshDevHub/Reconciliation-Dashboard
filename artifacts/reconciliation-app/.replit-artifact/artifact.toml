@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Reconciliation Dashboard"
+description = "A focused reconciliation workspace for Indian businesses to connect Zoho Books, review invoices and bank statements, and track payment matching in one clear dashboard."
+version = "1.0.0"
+id = "artifacts/reconciliation-app"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25745
+
+[services.development]
+run = "pnpm --filter @workspace/reconciliation-app run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/reconciliation-app", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/reconciliation-app/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25745"
+BASE_PATH = "/"
