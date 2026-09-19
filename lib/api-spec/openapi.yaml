@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: zoho
+    description: Zoho Books connection operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /integrations/zoho/status:
+    get:
+      operationId: getZohoConnectionStatus
+      tags: [zoho]
+      summary: Get the signed-in user's Zoho Books connection status
+      responses:
+        "200":
+          description: Current connection state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ZohoConnectionStatus"
+        "401":
+          description: Not authenticated
 components:
   schemas:
     HealthStatus:
@@ -33,4 +49,14 @@ components:
           type: string
       required:
         - status
+    ZohoConnectionStatus:
+      type: object
+      required: [connected]
+      properties:
+        connected:
+          type: boolean
+        organizationId:
+          type: ["string", "null"]
+        organizationName:
+          type: ["string", "null"]
 

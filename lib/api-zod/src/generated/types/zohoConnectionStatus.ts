@@ -5,9 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-export interface HealthStatus {
-  status: string;
-}
 
 export interface ZohoConnectionStatus {
   connected: boolean;
@@ -16,4 +13,3 @@ export interface ZohoConnectionStatus {
   /** @nullable */
   organizationName?: string | null;
 }
-

@@ -26,7 +26,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -35,6 +35,7 @@ import { Link, Route, Switch, useLocation, Router as WouterRouter, Redirect } fr
 import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
+import { useGetZohoConnectionStatus, getGetZohoConnectionStatusQueryKey } from '@workspace/api-client-react';
 
 const queryClient = new QueryClient();
 
@@ -159,6 +160,7 @@ function AppShell({ children, onImport }: { children: ReactNode; onImport?: () =
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
+  const { data: status } = useGetZohoConnectionStatus();
 
   return (
     <div className="min-h-[100dvh] bg-[#f7f5ef] text-[#1c2430]">
@@ -186,7 +188,7 @@ function AppShell({ children, onImport }: { children: ReactNode; onImport?: () =
         <div className="mt-3 rounded-xl border border-white/8 bg-white/[.035] p-3">
           <div className="flex items-center gap-2.5">
             <span className="grid size-7 place-items-center rounded-lg bg-[#d8f1e7] text-[#19774e]"><Building2 size={14} /></span>
-            <div className="min-w-0"><div className="truncate text-[12px] font-medium text-[#eff3f1]">Zoho Books</div><div className="mt-0.5 flex items-center gap-1 text-[10px] text-[#7dcaab]"><span className="size-1.5 rounded-full bg-[#4fca91]" /> Connected</div></div>
+            <div className="min-w-0"><div className="truncate text-[12px] font-medium text-[#eff3f1]">{status?.organizationName || 'Zoho Books'}</div><div className="mt-0.5 flex items-center gap-1 text-[10px] text-[#7dcaab]"><span className="size-1.5 rounded-full bg-[#4fca91]" /> Connected</div></div>
             <button className="ml-auto rounded-md p-1 text-[#77848e] hover:bg-white/10 hover:text-white" data-testid="button-connection-settings"><Settings2 size={14} /></button>
           </div>
         </div>
@@ -249,11 +251,12 @@ function StatusPill({ status }: { status: MatchStatus | string }) {
 function DashboardPage() {
   const [modal, setModal] = useState<Modal>(null);
   const [month, setMonth] = useState('June 2024');
-  const [connected, setConnected] = useState(true);
   const [imported, setImported] = useState(false);
   const [reviewed, setReviewed] = useState(false);
   const [toast, setToast] = useState('');
   const { user } = useUser();
+  const { data: status } = useGetZohoConnectionStatus();
+  const connected = status?.connected ?? false;
 
   const notify = (message: string) => {
     setToast(message);
@@ -330,7 +333,7 @@ function DashboardPage() {
     </div>
 
     {toast && <div className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-[#27333e] px-5 py-3 text-[12px] font-medium text-white shadow-xl" data-testid="status-toast">{toast}</div>}
-    {modal === 'zoho' && <ModalShell title="Connect Zoho Books" subtitle="Keep invoices and payments in step with your books." onClose={() => setModal(null)}><div className="rounded-xl border border-[#e6e4dc] bg-[#faf9f5] p-4"><div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-[#dff3e9] text-[#21815a]"><Building2 size={19} /></span><div><div className="text-[13px] font-semibold">Zoho Books</div><div className="text-[11px] text-[#8c949a]">Sync invoices, contacts and payments</div></div></div></div><button onClick={() => { setConnected(true); setModal(null); notify('Zoho Books is connected'); }} className="mt-4 w-full rounded-xl bg-[#2d8cff] py-3 text-[12px] font-semibold text-white hover:bg-[#1877e4]" data-testid="button-connect-zoho">{connected ? 'Reconnect Zoho Books' : 'Connect Zoho Books'}</button></ModalShell>}
+    {modal === 'zoho' && <ModalShell title="Connect Zoho Books" subtitle="Keep invoices and payments in step with your books." onClose={() => setModal(null)}><div className="rounded-xl border border-[#e6e4dc] bg-[#faf9f5] p-4"><div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-[#dff3e9] text-[#21815a]"><Building2 size={19} /></span><div><div className="text-[13px] font-semibold">Zoho Books</div><div className="text-[11px] text-[#8c949a]">Sync invoices, contacts and payments</div></div></div></div><a href={`/api/integrations/zoho/authorize?returnTo=${encodeURIComponent(window.location.origin + basePath + '/dashboard')}`} className="mt-4 flex justify-center w-full rounded-xl bg-[#2d8cff] py-3 text-[12px] font-semibold text-white hover:bg-[#1877e4]" data-testid="button-connect-zoho">{connected ? 'Reconnect Zoho Books' : 'Connect Zoho Books'}</a></ModalShell>}
     {modal === 'statement' && <ModalShell title="Import a bank statement" subtitle="Bring in a CSV or Excel export from your bank." onClose={() => setModal(null)}><label className="flex cursor-pointer flex-col items-center rounded-2xl border border-dashed border-[#cdd5de] bg-[#f8fbfe] px-5 py-8 text-center hover:border-[#6ea9e8]" data-testid="label-statement-upload"><span className="grid size-11 place-items-center rounded-full bg-[#e5f1ff] text-[#2d8cff]"><Upload size={19} /></span><span className="mt-3 text-[12px] font-semibold text-[#344251]">Drop statement here</span><span className="mt-1 text-[10px] text-[#99a1a8]">CSV, XLSX or PDF · up to 10 MB</span><input type="file" accept=".csv,.xlsx,.pdf" className="hidden" onChange={() => setImported(true)} data-testid="input-statement-file" /></label>{imported && <div className="mt-3 flex items-center gap-2 rounded-lg bg-[#edf9f3] px-3 py-2 text-[11px] text-[#18784e]"><CheckCircle2 size={14} /> june-hdfc-statement.csv ready to import</div>}<button disabled={!imported} onClick={() => { setModal(null); setImported(false); notify('Statement imported — 7 new receipts found'); }} className="mt-4 w-full rounded-xl bg-[#2d8cff] py-3 text-[12px] font-semibold text-white transition hover:bg-[#1877e4] disabled:cursor-not-allowed disabled:opacity-40" data-testid="button-confirm-import">Import statement</button></ModalShell>}
     {modal === 'review' && <ModalShell title="Review unmatched payment" subtitle="One payment is waiting for your decision." onClose={() => setModal(null)}><div className="rounded-xl border border-[#ece8df] bg-[#faf9f5] p-4"><div className="flex items-start justify-between"><div><div className="text-[13px] font-semibold text-[#303b47]">Narayana Health Labs</div><div className="mono mt-1 text-[10px] text-[#92999f]">ICICI •••• 2309 · NEFT 184009</div></div><div className="mono text-[15px] font-semibold text-[#283541]">₹1,26,780</div></div><div className="mt-4 border-t border-[#ebe6db] pt-3 text-[11px] text-[#69747d]">No exact invoice match found in Zoho Books.</div></div><div className="mt-4 grid gap-2"><button onClick={() => { setReviewed(true); setModal(null); notify('Payment marked as matched'); }} className="flex items-center justify-between rounded-xl border border-[#c8e6d7] bg-[#f0fbf5] px-4 py-3 text-[11px] font-semibold text-[#197c51] hover:bg-[#e4f7ed]" data-testid="button-mark-matched">Match to INV-2406-118 <Check size={15} /></button><button onClick={() => { setModal(null); notify('Payment left for later'); }} className="flex items-center justify-between rounded-xl border border-[#e5e1d8] px-4 py-3 text-[11px] font-semibold text-[#596672] hover:bg-[#f7f5ef]" data-testid="button-snooze-review">Keep for later <ChevronRight size={15} /></button></div></ModalShell>}
   </AppShell>;
@@ -564,7 +567,7 @@ function SignUpPage() {
   );
 }
 
-function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+function RequireAuth({ component: Component }: { component: React.ComponentType }) {
   return (
     <>
       <Show when="signed-in">
@@ -574,6 +577,151 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
         <Redirect to="/" />
       </Show>
     </>
+  );
+}
+
+function ZohoConnectionGate({ component: Component }: { component: React.ComponentType }) {
+  const queryClient = useQueryClient();
+  
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('zoho') === 'connected') {
+      queryClient.invalidateQueries({ queryKey: getGetZohoConnectionStatusQueryKey() });
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('zoho');
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [queryClient]);
+
+  const { data: status, isLoading, isError } = useGetZohoConnectionStatus();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[100dvh] bg-[#f7f5ef] flex flex-col items-center justify-center p-6">
+        <div className="flex flex-col items-center gap-4 animate-rise">
+           <span className="grid size-12 place-items-center rounded-[14px] bg-[#2d8cff] text-white shadow-[0_5px_18px_rgba(45,140,255,.25)]"><Link2 size={24} strokeWidth={2.5} /></span>
+           <div className="text-[14px] font-medium text-[#77818c]">Loading workspace...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-[100dvh] bg-[#f7f5ef] flex flex-col items-center justify-center p-6 text-center">
+         <div className="rounded-2xl border border-[#e4e0d7] bg-white p-6 max-w-[400px]">
+           <CircleAlert size={32} className="text-[#e39b4f] mx-auto mb-4" />
+           <h2 className="text-[18px] font-semibold text-[#1c2430]">Connection Error</h2>
+           <p className="mt-2 text-[13px] text-[#636e7a]">We couldn't verify your workspace connection.</p>
+           <button onClick={() => window.location.reload()} className="mt-5 w-full rounded-xl bg-[#2d8cff] py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#1877e4]">Retry</button>
+         </div>
+      </div>
+    );
+  }
+
+  if (status && !status.connected) {
+    return <Redirect to="/connect-zoho" />;
+  }
+
+  return <Component />;
+}
+
+function RequireZoho({ component: Component }: { component: React.ComponentType }) {
+  return <RequireAuth component={() => <ZohoConnectionGate component={Component} />} />;
+}
+
+function ConnectZohoPage() {
+  const queryClient = useQueryClient();
+  
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('zoho') === 'connected') {
+      queryClient.invalidateQueries({ queryKey: getGetZohoConnectionStatusQueryKey() });
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('zoho');
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [queryClient]);
+
+  const { data: status, isLoading, isError } = useGetZohoConnectionStatus();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[100dvh] bg-[#f7f5ef] flex flex-col items-center justify-center p-6">
+        <div className="flex flex-col items-center gap-4 animate-rise">
+           <span className="grid size-12 place-items-center rounded-[14px] bg-[#2d8cff] text-white shadow-[0_5px_18px_rgba(45,140,255,.25)]"><Link2 size={24} strokeWidth={2.5} /></span>
+           <div className="text-[14px] font-medium text-[#77818c]">Loading workspace...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-[100dvh] bg-[#f7f5ef] flex flex-col items-center justify-center p-6 text-center">
+         <div className="rounded-2xl border border-[#e4e0d7] bg-white p-6 max-w-[400px] animate-rise">
+           <CircleAlert size={32} className="text-[#e39b4f] mx-auto mb-4" />
+           <h2 className="text-[18px] font-semibold text-[#1c2430]">Connection Error</h2>
+           <p className="mt-2 text-[13px] text-[#636e7a]">We couldn't verify your workspace connection.</p>
+           <button onClick={() => window.location.reload()} className="mt-5 w-full rounded-xl bg-[#2d8cff] py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#1877e4]">Retry</button>
+         </div>
+      </div>
+    );
+  }
+
+  if (status?.connected) {
+    return <Redirect to="/dashboard" />;
+  }
+
+  const returnTo = `${window.location.origin}${basePath}/dashboard`;
+  const authUrl = `/api/integrations/zoho/authorize?returnTo=${encodeURIComponent(returnTo)}`;
+
+  return (
+    <div className="min-h-[100dvh] bg-[#f7f5ef] quiet-grid text-[#1c2430] flex flex-col items-center justify-center px-5 py-12">
+      <div className="max-w-[440px] w-full animate-rise">
+        <div className="flex justify-center mb-10">
+          <div className="flex items-center gap-3">
+             <span className="grid size-10 place-items-center rounded-[12px] bg-[#2d8cff] text-white shadow-[0_5px_18px_rgba(45,140,255,.25)]"><Link2 size={20} strokeWidth={2.5} /></span>
+             <span className="text-[20px] font-semibold tracking-[-.03em]">Clear<span className="text-[#7eb8ff]">Match</span></span>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-[#e4e0d7] bg-white p-8 md:p-10 shadow-xl relative overflow-hidden">
+           <div className="absolute top-0 left-0 w-full h-1 bg-[#2d8cff]"></div>
+           <div className="flex justify-center mb-6">
+              <span className="grid size-16 place-items-center rounded-2xl bg-[#d8f1e7] text-[#19774e] border border-[#c4e9d7] shadow-sm"><Building2 size={28} /></span>
+           </div>
+           
+           <h1 className="text-center text-[22px] font-semibold tracking-[-.02em] text-[#1c2430]">Connect Zoho Books</h1>
+           <p className="mt-3 text-center text-[13.5px] leading-relaxed text-[#636e7a]">
+             ClearMatch needs access to your Zoho Books workspace to sync invoices and read payment data.
+           </p>
+
+           <div className="mt-8 space-y-3 bg-[#faf9f5] border border-[#ece9e2] rounded-xl p-5 shadow-inner">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 size={16} className="text-[#20815a] mt-0.5 shrink-0" />
+                <div className="text-[13px] font-medium text-[#303b47]">Sync open and closed invoices</div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle2 size={16} className="text-[#20815a] mt-0.5 shrink-0" />
+                 <div className="text-[13px] font-medium text-[#303b47]">Keep invoice status up to date</div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle2 size={16} className="text-[#20815a] mt-0.5 shrink-0" />
+                <div className="text-[13px] font-medium text-[#303b47]">Automate your reconciliation workflow</div>
+              </div>
+           </div>
+
+           <a href={authUrl} className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-[#2d8cff] py-3.5 text-[14px] font-semibold text-white shadow-[0_5px_15px_rgba(45,140,255,.18)] transition hover:bg-[#1877e4]">
+             Connect workspace <ArrowUpRight size={16} />
+           </a>
+           
+           <p className="mt-6 text-center text-[11px] text-[#8e959b]">
+             You will be redirected to Zoho to approve access.
+           </p>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -598,10 +746,11 @@ function Router() {
       <Route path="/" component={HomeRedirect} />
       <Route path="/sign-in/*?" component={SignInPage} />
       <Route path="/sign-up/*?" component={SignUpPage} />
-      <Route path="/dashboard" component={() => <ProtectedRoute component={DashboardPage} />} />
-      <Route path="/reconciliation" component={() => <ProtectedRoute component={() => <SectionPage title="Reconciliation" kicker="Payment control" description="A focused queue for every receipt that needs a confident match, from bank movement to the right invoice." icon={ClipboardCheck} />} />} />
-      <Route path="/invoices" component={() => <ProtectedRoute component={() => <SectionPage title="Invoices" kicker="Zoho Books" description="Know what is paid, what is open, and which customer conversations deserve your attention next." icon={FileSpreadsheet} />} />} />
-      <Route path="/bank-statements" component={() => <ProtectedRoute component={() => <SectionPage title="Bank statements" kicker="Source records" description="Bring statements into one dependable place and keep a clean line from imported movement to final decision." icon={Landmark} />} />} />
+      <Route path="/connect-zoho" component={() => <RequireAuth component={ConnectZohoPage} />} />
+      <Route path="/dashboard" component={() => <RequireZoho component={DashboardPage} />} />
+      <Route path="/reconciliation" component={() => <RequireZoho component={() => <SectionPage title="Reconciliation" kicker="Payment control" description="A focused queue for every receipt that needs a confident match, from bank movement to the right invoice." icon={ClipboardCheck} />} />} />
+      <Route path="/invoices" component={() => <RequireZoho component={() => <SectionPage title="Invoices" kicker="Zoho Books" description="Know what is paid, what is open, and which customer conversations deserve your attention next." icon={FileSpreadsheet} />} />} />
+      <Route path="/bank-statements" component={() => <RequireZoho component={() => <SectionPage title="Bank statements" kicker="Source records" description="Bring statements into one dependable place and keep a clean line from imported movement to final decision." icon={Landmark} />} />} />
       <Route component={NotFound} />
     </Switch>
   );
