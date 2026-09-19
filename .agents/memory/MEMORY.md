@@ -1,0 +1,1 @@
+- [Approved dashboard design](approved-dashboard-design.md) — preserve the existing authenticated dashboard’s visual language when extending ClearMatch.

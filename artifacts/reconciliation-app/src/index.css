@@ -1,5 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap');
+@layer theme, base, clerk, components, utilities;
 @import 'tailwindcss';
+@import '@clerk/themes/shadcn.css';
 @import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
@@ -108,3 +110,8 @@
   background-size: 28px 28px;
 }
 .skeleton { background: linear-gradient(100deg, hsl(var(--muted)) 30%, hsl(var(--card)) 50%, hsl(var(--muted)) 70%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+
+.cl-formFieldInput::placeholder {
+  color: #8b9399;
+  opacity: 1;
+}

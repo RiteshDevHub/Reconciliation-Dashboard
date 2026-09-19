@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useState, useEffect, useRef } from 'react';
 import {
   ArrowDownToLine,
   ArrowUpRight,
@@ -31,15 +31,108 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
-import { Link, Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
+import { Link, Route, Switch, useLocation, Router as WouterRouter, Redirect } from 'wouter';
+import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser } from '@clerk/react';
+import { publishableKeyFromHost } from '@clerk/react/internal';
+import { shadcn } from '@clerk/themes';
 
 const queryClient = new QueryClient();
 
+// --- Clerk Auth Setup ---
+const clerkPubKey = publishableKeyFromHost(
+  window.location.hostname,
+  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
+);
+
+const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+function stripBase(path: string): string {
+  return basePath && path.startsWith(basePath)
+    ? path.slice(basePath.length) || "/"
+    : path;
+}
+
+if (!clerkPubKey) {
+  throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env file');
+}
+
+const clerkAppearance = {
+  theme: shadcn,
+  cssLayerName: "clerk",
+  options: {
+    logoPlacement: "inside" as const,
+    logoLinkUrl: basePath || "/",
+    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
+  },
+  variables: {
+    colorPrimary: "hsl(215, 91%, 56%)",
+    colorForeground: "hsl(220, 24%, 14%)",
+    colorMutedForeground: "hsl(218, 10%, 44%)",
+    colorDanger: "hsl(4, 72%, 52%)",
+    colorBackground: "hsl(0, 0%, 100%)",
+    colorInput: "hsl(0, 0%, 100%)",
+    colorInputForeground: "hsl(220, 24%, 14%)",
+    colorNeutral: "hsl(35, 19%, 87%)",
+    fontFamily: "var(--app-font-sans)",
+    borderRadius: "0.8rem",
+  },
+  elements: {
+    rootBox: "w-full flex justify-center",
+    cardBox: "bg-white rounded-2xl w-[440px] max-w-full overflow-hidden shadow-xl border border-[#e4e0d7]",
+    card: "!shadow-none !border-0 !bg-transparent !rounded-none",
+    footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
+    headerTitle: "text-[#263441] font-semibold text-[24px] tracking-[-.04em]",
+    headerSubtitle: "text-[#8b9399] text-[13px] mt-1",
+    socialButtonsBlockButtonText: "text-[#303b47] font-medium text-[13px]",
+    formFieldLabel: "text-[#303b47] font-semibold text-[13px]",
+    footerActionLink: "text-[#2d8cff] font-semibold hover:text-[#1877e4]",
+    footerActionText: "text-[#8b9399] text-[13px]",
+    dividerText: "text-[#8b9399] text-[12px]",
+    identityPreviewEditButton: "text-[#2d8cff] hover:text-[#1877e4]",
+    formFieldSuccessText: "text-[#18784e]",
+    alertText: "text-[#aa681e]",
+    logoBox: "mb-6 flex justify-center",
+    logoImage: "h-10",
+    socialButtonsBlockButton: "border-[#e6e4dc] bg-white hover:bg-[#faf9f5] rounded-xl transition",
+    formButtonPrimary: "bg-[#2d8cff] hover:bg-[#1877e4] text-white font-semibold rounded-xl py-3 shadow-[0_5px_15px_rgba(45,140,255,.18)] transition",
+    formFieldInput: "border-[#e6e4dc] bg-white rounded-xl focus:border-[#2d8cff] focus:ring focus:ring-[#2d8cff]/20 text-[13px]",
+    footerAction: "mt-6 border-t border-[#e6e4dc] pt-6",
+    dividerLine: "bg-[#e6e4dc]",
+    alert: "bg-[#fff7ed] border-[#f0d0ad]",
+    otpCodeFieldInput: "border-[#e6e4dc] focus:border-[#2d8cff]",
+    formFieldRow: "mb-4",
+    main: "mt-2",
+  },
+};
+
+function ClerkQueryClientCacheInvalidator() {
+  const { addListener } = useClerk();
+  const prevUserIdRef = useRef<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    const unsubscribe = addListener(({ user }) => {
+      const userId = user?.id ?? null;
+      if (
+        prevUserIdRef.current !== undefined &&
+        prevUserIdRef.current !== userId
+      ) {
+        queryClient.clear();
+      }
+      prevUserIdRef.current = userId;
+    });
+    return unsubscribe;
+  }, [addListener]);
+
+  return null;
+}
+
+// --- Data Types & Mock Data ---
 type Modal = 'zoho' | 'statement' | 'review' | null;
 type MatchStatus = 'Matched' | 'Needs review' | 'Partial';
 
 const navItems = [
-  { href: '/', label: 'Overview', icon: LayoutDashboard },
+  { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
   { href: '/reconciliation', label: 'Reconciliation', icon: ClipboardCheck, count: '12' },
   { href: '/invoices', label: 'Invoices', icon: FileSpreadsheet },
   { href: '/bank-statements', label: 'Bank statements', icon: Landmark },
@@ -59,15 +152,19 @@ const invoices = [
   { id: 'INV-2406-087', customer: 'Bharat Forge Systems', due: '12 Jun 2024', amount: '₹2,84,500', status: 'Paid' },
 ];
 
+// --- Pages & Components ---
+
 function AppShell({ children, onImport }: { children: ReactNode; onImport?: () => void }) {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
 
   return (
     <div className="min-h-[100dvh] bg-[#f7f5ef] text-[#1c2430]">
       <aside className={`fixed inset-y-0 left-0 z-40 flex w-[256px] flex-col bg-[#202831] px-5 py-6 text-[#e8e8e1] transition-transform duration-300 md:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between px-2">
-          <Link href="/" className="flex items-center gap-3" data-testid="link-brand">
+          <Link href="/dashboard" className="flex items-center gap-3" data-testid="link-brand">
             <span className="grid size-8 place-items-center rounded-[10px] bg-[#2d8cff] text-white shadow-[0_5px_18px_rgba(45,140,255,.25)]"><Link2 size={17} strokeWidth={2.5} /></span>
             <span className="text-[17px] font-semibold tracking-[-.03em]">Clear<span className="text-[#7eb8ff]">Match</span></span>
           </Link>
@@ -97,10 +194,30 @@ function AppShell({ children, onImport }: { children: ReactNode; onImport?: () =
         <div className="mt-auto space-y-1 border-t border-white/8 pt-4">
           <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] text-[#a7b0b8] hover:bg-white/5 hover:text-white" data-testid="button-help"><CircleHelp size={16} /> Help centre</button>
           <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] text-[#a7b0b8] hover:bg-white/5 hover:text-white" data-testid="button-settings"><Settings2 size={16} /> Settings</button>
-          <div className="mt-3 flex items-center gap-3 rounded-xl bg-white/[.035] px-3 py-3">
-            <span className="grid size-8 place-items-center rounded-full bg-[#c9d9e8] text-[11px] font-bold text-[#26394a]">AM</span>
-            <div><div className="text-[12px] font-medium text-white">Aarav Mehta</div><div className="text-[10px] text-[#7d8993]">Finance lead</div></div>
-            <button className="ml-auto text-[#7d8993] hover:text-white" data-testid="button-account-menu"><MoreHorizontal size={16} /></button>
+          
+          <div className="mt-3 flex flex-col gap-1.5 rounded-xl bg-white/[.035] px-3 py-3">
+            <div className="flex items-center gap-3">
+              {isLoaded ? (
+                <>
+                  <span className="grid size-8 place-items-center rounded-full bg-[#c9d9e8] text-[11px] font-bold text-[#26394a] overflow-hidden">
+                    {user?.imageUrl ? <img src={user.imageUrl} alt={user?.fullName || ''} className="size-full object-cover" /> : (user?.firstName?.[0] || 'U')}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[12px] font-medium text-white">{user?.fullName || 'Finance Lead'}</div>
+                    <div className="truncate text-[10px] text-[#7d8993]">{user?.primaryEmailAddress?.emailAddress || 'User'}</div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="size-8 rounded-full skeleton" />
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <div className="h-3 w-16 skeleton rounded" />
+                    <div className="h-2 w-20 skeleton rounded" />
+                  </div>
+                </>
+              )}
+            </div>
+            <button onClick={() => signOut({ redirectUrl: basePath || "/" })} className="mt-2 w-full rounded border border-white/10 bg-white/5 py-1.5 text-[11px] font-semibold text-[#a7b0b8] transition hover:bg-white/10 hover:text-white" data-testid="button-sign-out">Sign out</button>
           </div>
         </div>
       </aside>
@@ -109,7 +226,7 @@ function AppShell({ children, onImport }: { children: ReactNode; onImport?: () =
         <header className="flex h-[72px] items-center justify-between border-b border-[#e6e2d8] bg-[#f7f5ef]/95 px-5 backdrop-blur-md md:px-10">
           <div className="flex items-center gap-3">
             <button className="rounded-lg p-2 text-[#5d6875] hover:bg-[#ebe8df] md:hidden" onClick={() => setMobileOpen(true)} data-testid="button-open-mobile-nav"><Menu size={20} /></button>
-            <div className="hidden items-center gap-2 text-[12px] text-[#7b8490] sm:flex"><span>ClearMatch</span><ChevronRight size={13} /><span className="text-[#26313e]">{location === '/' ? 'Overview' : location.slice(1).replaceAll('-', ' ')}</span></div>
+            <div className="hidden items-center gap-2 text-[12px] text-[#7b8490] sm:flex"><span>ClearMatch</span><ChevronRight size={13} /><span className="text-[#26313e]">{location === '/dashboard' ? 'Overview' : location.slice(1).replaceAll('-', ' ')}</span></div>
             <div className="text-[14px] font-semibold tracking-[-.02em] text-[#26313e] sm:hidden">ClearMatch</div>
           </div>
           <div className="flex items-center gap-2.5">
@@ -136,6 +253,7 @@ function DashboardPage() {
   const [imported, setImported] = useState(false);
   const [reviewed, setReviewed] = useState(false);
   const [toast, setToast] = useState('');
+  const { user } = useUser();
 
   const notify = (message: string) => {
     setToast(message);
@@ -150,7 +268,7 @@ function DashboardPage() {
       <div className="absolute -right-24 -top-44 size-[500px] rounded-full border border-[#5c7188]/20" /><div className="absolute -right-4 -top-24 size-[340px] rounded-full border border-[#5c7188]/15" />
       <div className="relative mx-auto max-w-[1380px] animate-rise">
         <div className="mb-7 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
-          <div><div className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.2em] text-[#86baff]"><span className="size-1.5 rounded-full bg-[#63aaff]" /> Tuesday, 18 June 2024</div><h1 className="display text-[38px] leading-[.98] tracking-[-.025em] sm:text-[52px]">Good morning, Aarav.</h1><p className="mt-3 max-w-[430px] text-[13px] leading-6 text-[#abb7c2]">Your books are in shape. A few receipts need a closer look before the day gets moving.</p></div>
+          <div><div className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.2em] text-[#86baff]"><span className="size-1.5 rounded-full bg-[#63aaff]" /> Tuesday, 18 June 2024</div><h1 className="display text-[38px] leading-[.98] tracking-[-.025em] sm:text-[52px]">Good morning, {user?.firstName || 'Aarav'}.</h1><p className="mt-3 max-w-[430px] text-[13px] leading-6 text-[#abb7c2]">Your books are in shape. A few receipts need a closer look before the day gets moving.</p></div>
           <div className="flex items-center gap-2 self-start sm:self-auto">
             <div className="relative"><select value={month} onChange={(event) => { setMonth(event.target.value); notify(`Showing ${event.target.value}`); }} className="appearance-none rounded-full border border-[#51606f] bg-[#303a47] py-2.5 pl-4 pr-9 text-[12px] font-medium text-[#edf3f7] outline-none hover:border-[#8292a2]" data-testid="select-month-filter"><option>June 2024</option><option>May 2024</option><option>April 2024</option></select><ChevronDown size={14} className="pointer-events-none absolute right-3 top-3 text-[#a5b0b9]" /></div>
             <button className="rounded-full border border-[#51606f] p-2.5 text-[#abb7c2] hover:border-[#8292a2] hover:text-white" onClick={() => notify('Workspace refreshed')} data-testid="button-refresh-dashboard"><RefreshCw size={15} /></button>
@@ -229,8 +347,264 @@ function SectionPage({ title, kicker, description, icon: Icon }: { title: string
   return <AppShell onImport={() => notify('Open Overview to import a statement')}><div className="mx-auto max-w-[1380px] px-5 py-10 md:px-10 md:py-14"><div className="animate-rise rounded-2xl bg-[#242b35] px-6 py-8 text-white sm:px-10 sm:py-10"><div className="flex items-start justify-between"><div><div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.2em] text-[#86baff]"><Icon size={13} /> {kicker}</div><h1 className="display mt-4 text-[46px] leading-none sm:text-[58px]">{title}</h1><p className="mt-4 max-w-[530px] text-[13px] leading-6 text-[#b4bec8]">{description}</p></div><button onClick={() => notify('View refreshed')} className="rounded-full border border-[#51606f] p-2.5 text-[#abb7c2] hover:border-[#8292a2] hover:text-white" data-testid="button-refresh-section"><RefreshCw size={15} /></button></div></div><div className="mt-6 grid gap-5 lg:grid-cols-[1.25fr_.75fr]"><section className="rounded-2xl border border-[#e4e0d7] bg-white p-5 sm:p-6"><div className="flex items-center justify-between border-b border-[#efede8] pb-4"><div><h2 className="text-[15px] font-semibold text-[#303b47]">Work queue</h2><p className="mt-1 text-[11px] text-[#8b9299]">Your most recent finance activity</p></div><button onClick={() => notify('Export prepared')} className="flex items-center gap-2 rounded-full border border-[#ddd9cf] px-3 py-2 text-[11px] font-semibold text-[#5e6c77] hover:bg-[#faf9f5]" data-testid="button-export-section"><ArrowDownToLine size={13} /> Export</button></div><div className="divide-y divide-[#efede8]">{(location === '/invoices' ? invoices : receiptRows).map((item, index) => { const name = 'customer' in item ? item.customer : item.name; const amount = item.amount; const status = 'status' in item ? item.status : 'Matched'; return <div key={index} className="flex items-center justify-between gap-3 py-4"><div><div className="text-[12px] font-semibold text-[#35414d]">{name}</div><div className="mono mt-1 text-[10px] text-[#99a0a5]">{'reference' in item ? item.reference : item.id}</div></div><div className="flex items-center gap-4"><span className="mono text-[12px] text-[#35414d]">{amount}</span><StatusPill status={status} /></div></div>; })}</div></section><section className="rounded-2xl border border-[#e4e0d7] bg-[#f0eee7] p-6"><div className="text-[10px] font-semibold uppercase tracking-[.16em] text-[#929797]">Workspace signal</div><div className="mt-5 display text-[32px] leading-[.98] text-[#2a3541]">Everything you need,<br /><em>in one clear view.</em></div><p className="mt-5 text-[12px] leading-5 text-[#737b7e]">Keep your books, bank movement and decisions connected. This workspace updates as your team closes the queue.</p><div className="mt-6 flex items-center gap-2 rounded-xl bg-white/70 px-3 py-3 text-[11px] font-semibold text-[#247c57]"><CheckCircle2 size={15} /> All connected sources are healthy</div></section></div></div>{toast && <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[#27333e] px-5 py-3 text-[12px] text-white shadow-xl" data-testid="status-section-toast">{toast}</div>}</AppShell>;
 }
 
+// --- Marketing Landing Page ---
+function MarketingPage() {
+  return (
+    <div className="min-h-[100dvh] bg-[#f7f5ef] text-[#1c2430]">
+      <header className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-6 md:px-12">
+        <div className="flex items-center gap-3">
+          <span className="grid size-9 place-items-center rounded-xl bg-[#2d8cff] text-white shadow-[0_5px_18px_rgba(45,140,255,.25)]"><Link2 size={19} strokeWidth={2.5} /></span>
+          <span className="text-[19px] font-semibold tracking-[-.03em]">Clear<span className="text-[#2d8cff]">Match</span></span>
+        </div>
+        <div className="flex items-center gap-4">
+          <Link href="/sign-in" className="text-[13px] font-semibold text-[#5d6875] hover:text-[#1c2430]" data-testid="link-signin">Sign in</Link>
+          <Link href="/sign-up" className="rounded-full bg-[#1c2430] px-5 py-2.5 text-[13px] font-semibold text-white shadow-md transition hover:bg-[#2c3846]" data-testid="link-signup">Get started</Link>
+        </div>
+      </header>
+
+      <main>
+        {/* Hero Section */}
+        <section className="relative overflow-hidden pt-32 pb-20 md:pt-48 md:pb-32">
+          {/* subtle grid background */}
+          <div className="absolute inset-0 quiet-grid pointer-events-none opacity-60" />
+          
+          <div className="relative mx-auto max-w-[1200px] px-6 md:px-12 text-center flex flex-col items-center">
+            <div className="animate-rise inline-flex items-center gap-2 rounded-full border border-[#d6d0c4] bg-white/60 px-3 py-1 text-[11px] font-semibold tracking-wide text-[#626d79] backdrop-blur-sm">
+              <span className="size-1.5 rounded-full bg-[#2d8cff]" /> Reconcile faster with Zoho Books
+            </div>
+            
+            <h1 className="animate-rise delay-1 display mt-8 max-w-[800px] text-[56px] leading-[.95] tracking-[-.03em] md:text-[84px]">
+              The calmest close <br className="hidden md:block" />
+              <span className="text-[#687382]">your team has ever seen.</span>
+            </h1>
+            
+            <p className="animate-rise delay-2 mt-8 max-w-[540px] text-[16px] leading-relaxed text-[#5f6b78]">
+              ClearMatch perfectly aligns your bank statements with Zoho Books invoices. Stop cross-referencing spreadsheets and start making decisions.
+            </p>
+            
+            <div className="animate-rise delay-3 mt-10 flex flex-col sm:flex-row items-center gap-4">
+              <Link href="/sign-up" className="flex items-center justify-center rounded-full bg-[#2d8cff] px-8 py-3.5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgba(45,140,255,.25)] transition hover:bg-[#1877e4]" data-testid="hero-signup">
+                Start your workspace
+              </Link>
+              <Link href="/sign-in" className="flex items-center justify-center rounded-full border border-[#d2cebf] bg-white px-8 py-3.5 text-[14px] font-semibold text-[#303b47] transition hover:bg-[#f2efe7]" data-testid="hero-signin">
+                Sign in to your account
+              </Link>
+            </div>
+          </div>
+
+          {/* Hero Mockup */}
+          <div className="animate-rise delay-3 relative mx-auto mt-20 max-w-[1100px] px-6">
+            <div className="relative rounded-2xl border border-[#e4e0d7] bg-white p-2 shadow-[0_30px_80px_rgba(35,43,54,.08)] md:p-4">
+               {/* Simplified Mockup Dashboard */}
+               <div className="rounded-xl border border-[#ece8df] bg-[#faf9f5] overflow-hidden">
+                 <header className="flex h-14 items-center justify-between border-b border-[#ece8df] bg-white px-5">
+                   <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2 text-[12px] text-[#26313e] font-medium"><LayoutDashboard size={14} className="text-[#a5acb3]" /> Overview</div>
+                      <div className="flex items-center gap-2 text-[12px] text-[#8e959b]"><FileSpreadsheet size={14} className="text-[#a5acb3]" /> Invoices</div>
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <div className="size-6 rounded-full bg-[#d8f1e7] flex items-center justify-center text-[#19774e]"><Building2 size={12} /></div>
+                     <span className="hidden sm:inline text-[11px] font-medium text-[#4a545e]">Zoho Books Connected</span>
+                   </div>
+                 </header>
+                 <div className="p-5 md:p-8 grid gap-6 lg:grid-cols-[1fr_300px]">
+                   <div className="space-y-4">
+                     <div className="flex items-center justify-between">
+                       <h3 className="text-[14px] font-semibold text-[#273341]">Recent receipts</h3>
+                       <span className="text-[11px] text-[#247ce0] font-medium flex items-center gap-1">View all <ArrowUpRight size={12}/></span>
+                     </div>
+                     <div className="rounded-xl border border-[#e4e0d7] bg-white shadow-sm overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left min-w-[500px]">
+                            <thead>
+                              <tr className="border-b border-[#efede8] text-[10px] font-semibold uppercase tracking-[.12em] text-[#9ba0a4]">
+                                <th className="px-5 py-3">Customer</th>
+                                <th className="px-5 py-3 text-right">Amount</th>
+                                <th className="px-5 py-3">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {receiptRows.slice(0, 3).map((row, i) => (
+                                <tr key={i} className="border-b border-[#f0eee9] last:border-0">
+                                  <td className="px-5 py-3">
+                                    <div className="text-[12px] font-semibold text-[#303a46]">{row.name}</div>
+                                    <div className="mono mt-0.5 text-[10px] text-[#9a9fa4]">{row.reference}</div>
+                                  </td>
+                                  <td className="px-5 py-3 text-right mono text-[12px] font-medium text-[#303a46]">{row.amount}</td>
+                                  <td className="px-5 py-3"><StatusPill status={row.status} /></td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                     </div>
+                   </div>
+                   <div className="space-y-4">
+                     <div className="rounded-xl border border-[#e4e0d7] bg-[#f0eee7] p-5">
+                       <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.17em] text-[#8a8b87]"><Zap size={12} className="text-[#2d8cff]" /> Focus for today</div>
+                       <h2 className="mt-3 text-[18px] font-semibold leading-tight tracking-[-.04em] text-[#2a3541]">Clear the last<br /><span className="display text-[24px] font-normal italic">loose ends.</span></h2>
+                       <div className="mt-6 flex items-end justify-between">
+                         <div><div className="mono text-[24px] tracking-[-.07em] text-[#263441]">12</div><div className="mt-0.5 text-[10px] text-[#7f8587]">needs review</div></div>
+                         <div className="text-right"><div className="mono text-[12px] text-[#606b72]">₹3,64,980</div></div>
+                       </div>
+                       <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-[#dadbd5]"><div className="h-full w-[78%] rounded-full bg-[#e5a155]" /></div>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Feature Section: Editorial Layout */}
+        <section className="bg-[#242b35] py-24 text-[#f6f4ee]">
+          <div className="mx-auto max-w-[1200px] px-6 md:px-12 grid gap-16 md:grid-cols-2 md:items-center">
+            <div>
+              <div className="mb-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[.18em] text-[#86baff]"><Building2 size={14} /> Built for Zoho Books</div>
+              <h2 className="display text-[42px] leading-[1] md:text-[52px]">Invoices and bank movement, perfectly matched.</h2>
+              <p className="mt-6 text-[15px] leading-relaxed text-[#a8b4c0] max-w-[480px]">
+                We pull your open invoices straight from Zoho Books and match them with incoming bank statements. Our intelligent reconciliation engine surfaces exact matches and highlights partial payments, so your finance team operates with total precision.
+              </p>
+              <div className="mt-10 grid gap-6 sm:grid-cols-2">
+                 <div>
+                   <div className="flex items-center gap-2 font-semibold text-white"><CheckCircle2 size={16} className="text-[#72d0a6]" /> High confidence</div>
+                   <p className="mt-2 text-[12px] text-[#8997a5]">Exact matches are processed instantly, reducing manual verification.</p>
+                 </div>
+                 <div>
+                   <div className="flex items-center gap-2 font-semibold text-white"><CircleAlert size={16} className="text-[#efb46c]" /> Smart review</div>
+                   <p className="mt-2 text-[12px] text-[#8997a5]">Partial payments and ambiguous names are queued for a quick human decision.</p>
+                 </div>
+              </div>
+            </div>
+            <div className="relative">
+              {/* Visual representation of matching */}
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-md">
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-white/10 bg-[#2d3641] p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="text-[10px] text-[#8ea0b2] font-mono mb-1">BANK STATEMENT</div>
+                        <div className="text-[14px] font-semibold text-white">Bharat Forge Systems</div>
+                        <div className="text-[12px] text-[#8ea0b2] mt-1 font-mono">HDFC •••• 7814</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[15px] font-semibold text-white font-mono">₹2,84,500</div>
+                        <div className="text-[11px] text-[#72d0a6] mt-1 flex items-center justify-end gap-1"><Check size={12} /> Received</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-center -my-2 relative z-10">
+                    <div className="grid size-8 place-items-center rounded-full border border-white/10 bg-[#1e252e] text-[#86baff]">
+                       <Link2 size={14} />
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-[#72d0a6]/30 bg-[#1f302b] p-4 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10"><FileSpreadsheet size={64} /></div>
+                    <div className="flex justify-between items-start relative z-10">
+                      <div>
+                        <div className="text-[10px] text-[#72d0a6] font-mono mb-1">ZOHO BOOKS INVOICE</div>
+                        <div className="text-[14px] font-semibold text-[#e1f5eb]">INV-2406-087</div>
+                        <div className="text-[12px] text-[#93c7b2] mt-1">Bharat Forge Systems</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[15px] font-semibold text-[#e1f5eb] font-mono">₹2,84,500</div>
+                        <div className="text-[11px] text-[#72d0a6] mt-1 font-semibold flex items-center justify-end gap-1"><CheckCircle2 size={12} /> 100% Match</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Final CTA */}
+        <section className="py-24 text-center">
+          <div className="mx-auto max-w-[600px] px-6">
+            <h2 className="display text-[40px] leading-tight text-[#1c2430]">Bring calm back to your financial close.</h2>
+            <p className="mt-5 text-[15px] text-[#636e7a]">Join Indian finance teams relying on ClearMatch to close their books perfectly, every time.</p>
+            <div className="mt-8 flex items-center justify-center">
+              <Link href="/sign-up" className="flex items-center justify-center rounded-full bg-[#1c2430] px-8 py-3.5 text-[14px] font-semibold text-white shadow-xl transition hover:bg-[#2c3846]" data-testid="footer-signup">
+                Create your free workspace
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-[#e2ddd0] bg-[#f2efe7] py-10">
+        <div className="mx-auto max-w-[1200px] px-6 md:px-12 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="grid size-6 place-items-center rounded-md bg-[#2d8cff] text-white"><Link2 size={12} strokeWidth={2.5} /></span>
+            <span className="text-[14px] font-semibold tracking-[-.02em] text-[#1c2430]">ClearMatch</span>
+          </div>
+          <p className="text-[12px] text-[#77818c]">© {new Date().getFullYear()} ClearMatch Workspace. Built for precision.</p>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+// --- Auth Routes ---
+function SignInPage() {
+  return (
+    <div className="flex min-h-[100dvh] items-center justify-center bg-[#f7f5ef] quiet-grid px-4 py-12">
+      <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+    </div>
+  );
+}
+
+function SignUpPage() {
+  return (
+    <div className="flex min-h-[100dvh] items-center justify-center bg-[#f7f5ef] quiet-grid px-4 py-12">
+      <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
+    </div>
+  );
+}
+
+function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  return (
+    <>
+      <Show when="signed-in">
+        <Component />
+      </Show>
+      <Show when="signed-out">
+        <Redirect to="/" />
+      </Show>
+    </>
+  );
+}
+
+function HomeRedirect() {
+  return (
+    <>
+      <Show when="signed-in">
+        <Redirect to="/dashboard" />
+      </Show>
+      <Show when="signed-out">
+        <MarketingPage />
+      </Show>
+    </>
+  );
+}
+
+// --- App Router & Setup ---
+
 function Router() {
-  return <Switch><Route path="/" component={DashboardPage} /><Route path="/reconciliation" component={() => <SectionPage title="Reconciliation" kicker="Payment control" description="A focused queue for every receipt that needs a confident match, from bank movement to the right invoice." icon={ClipboardCheck} />} /><Route path="/invoices" component={() => <SectionPage title="Invoices" kicker="Zoho Books" description="Know what is paid, what is open, and which customer conversations deserve your attention next." icon={FileSpreadsheet} />} /><Route path="/bank-statements" component={() => <SectionPage title="Bank statements" kicker="Source records" description="Bring statements into one dependable place and keep a clean line from imported movement to final decision." icon={Landmark} />} /><Route component={NotFound} /></Switch>;
+  return (
+    <Switch>
+      <Route path="/" component={HomeRedirect} />
+      <Route path="/sign-in/*?" component={SignInPage} />
+      <Route path="/sign-up/*?" component={SignUpPage} />
+      <Route path="/dashboard" component={() => <ProtectedRoute component={DashboardPage} />} />
+      <Route path="/reconciliation" component={() => <ProtectedRoute component={() => <SectionPage title="Reconciliation" kicker="Payment control" description="A focused queue for every receipt that needs a confident match, from bank movement to the right invoice." icon={ClipboardCheck} />} />} />
+      <Route path="/invoices" component={() => <ProtectedRoute component={() => <SectionPage title="Invoices" kicker="Zoho Books" description="Know what is paid, what is open, and which customer conversations deserve your attention next." icon={FileSpreadsheet} />} />} />
+      <Route path="/bank-statements" component={() => <ProtectedRoute component={() => <SectionPage title="Bank statements" kicker="Source records" description="Bring statements into one dependable place and keep a clean line from imported movement to final decision." icon={Landmark} />} />} />
+      <Route component={NotFound} />
+    </Switch>
+  );
 }
 
 function RoutedErrorBoundary({ children }: { children: ReactNode }) {
@@ -238,8 +612,42 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
   return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
 }
 
+function ClerkProviderWithRoutes() {
+  const [, setLocation] = useLocation();
+
+  return (
+    <ClerkProvider
+      publishableKey={clerkPubKey}
+      proxyUrl={clerkProxyUrl}
+      appearance={clerkAppearance}
+      signInUrl={`${basePath}/sign-in`}
+      signUpUrl={`${basePath}/sign-up`}
+      localization={{
+        signIn: { start: { title: "Welcome to ClearMatch", subtitle: "Sign in to access your workspace" } },
+        signUp: { start: { title: "Create your workspace", subtitle: "Get started today" } },
+      }}
+      routerPush={(to) => setLocation(stripBase(to))}
+      routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
+    >
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <ClerkQueryClientCacheInvalidator />
+          <RoutedErrorBoundary>
+            <Router />
+          </RoutedErrorBoundary>
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ClerkProvider>
+  );
+}
+
 function App() {
-  return <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}><RoutedErrorBoundary><Router /></RoutedErrorBoundary></WouterRouter><Toaster /></TooltipProvider></QueryClientProvider>;
+  return (
+    <WouterRouter base={basePath}>
+      <ClerkProviderWithRoutes />
+    </WouterRouter>
+  );
 }
 
 export default App;

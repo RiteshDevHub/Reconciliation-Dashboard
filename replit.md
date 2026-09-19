@@ -34,6 +34,9 @@ A reconciliation dashboard for Indian finance teams to review Zoho Books invoice
 
 ## Product
 
+- Public marketing homepage for signed-out visitors with product previews built from the dashboard UI
+- Branded Google and email/password sign-in and sign-up through Clerk
+- Authenticated users land directly in the protected dashboard workspace
 - Overview of receipts, matching rate, unresolved payments, and open invoices
 - Reconciliation, invoices, and bank-statement views
 - Interactive Zoho Books connection, statement import, date filtering, sync, and payment review demonstrations
