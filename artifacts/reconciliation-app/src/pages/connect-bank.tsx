@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { AppShell } from '../App';
 import { 
   useGetBankConnectionStatus, 
   useConnectDemoBankAccount, 
@@ -11,7 +10,7 @@ import {
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { 
-  Search, Building2, Landmark, ChevronRight, CheckCircle2, ArrowRight, ArrowLeft, RefreshCw, X, ShieldCheck, AlertCircle
+  Search, Building2, Landmark, ChevronRight, CheckCircle2, ArrowRight, ArrowLeft, RefreshCw, ShieldCheck, AlertCircle, Link2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -392,8 +391,27 @@ export function ConnectBankPage() {
   );
 
   return (
-    <AppShell>
-      <div className="flex min-h-[calc(100vh-72px)] flex-col items-center justify-center p-6 md:p-12">
+    <div className="quiet-grid flex min-h-[100dvh] flex-col bg-[#f7f5ef] px-5 py-10 text-[#1c2430] md:py-12">
+      <div className="mb-9 flex justify-center">
+        <div className="flex items-center gap-3">
+          <span className="grid size-10 place-items-center rounded-[12px] bg-[#2d8cff] text-white shadow-[0_5px_18px_rgba(45,140,255,.25)]">
+            <Link2 size={20} strokeWidth={2.5} />
+          </span>
+          <span className="text-[20px] font-semibold tracking-[-.03em]">
+            Clear<span className="text-[#7eb8ff]">Match</span>
+          </span>
+        </div>
+      </div>
+
+      <div className="mb-7 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[.12em] text-[#89929c]">
+        <span className="grid size-5 place-items-center rounded-full bg-[#d8f1e7] text-[#19774e]">✓</span>
+        <span>Zoho Books</span>
+        <span className="h-px w-8 bg-[#d8d5ce]" />
+        <span className="grid size-5 place-items-center rounded-full bg-[#2d8cff] text-white">4</span>
+        <span className="text-[#2476c9]">Bank account</span>
+      </div>
+
+      <main className="flex flex-1 flex-col items-center justify-center pb-12">
         {statusLoading ? (
           <div className="flex flex-col items-center opacity-60">
             <RefreshCw size={24} className="animate-spin text-[#a1abb3]" />
@@ -409,7 +427,7 @@ export function ConnectBankPage() {
             {step === 'success' && renderSuccess()}
           </div>
         )}
-      </div>
-    </AppShell>
+      </main>
+    </div>
   );
 }
