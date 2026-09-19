@@ -1,1 +1,2 @@
 - [Approved dashboard design](approved-dashboard-design.md) — preserve the existing authenticated dashboard’s visual language when extending ClearMatch.
+- [Demo banking boundary](demo-banking-boundary.md) — bank onboarding must remain clearly simulated until a real Account Aggregator is deliberately introduced.

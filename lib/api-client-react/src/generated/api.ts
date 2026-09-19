@@ -20,6 +20,11 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  BankAccount,
+  BankConnectionStatus,
+  BankImportResult,
+  BankTransaction,
+  DemoBankSelection,
   HealthStatus,
   ZohoConnectionStatus,
   ZohoInvoice,
@@ -27,7 +32,7 @@ import type {
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
-import type { ErrorType } from '../custom-fetch';
+import type { ErrorType , BodyType } from '../custom-fetch';
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -432,4 +437,394 @@ export const useConnectZohoDemo = <TError = ErrorType<void>,
       > => {
       return useMutation(getConnectZohoDemoMutationOptions(options));
     }
+
+export const getGetBankConnectionStatusUrl = () => {
+
+
+
+
+  return `/api/integrations/banks/status`
+}
+
+/**
+ * @summary Get connected business bank accounts and onboarding status
+ */
+export const getBankConnectionStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<BankConnectionStatus> => {
+
+  return customFetch<BankConnectionStatus>(getGetBankConnectionStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBankConnectionStatusQueryKey = () => {
+    return [
+    `/api/integrations/banks/status`
+    ] as const;
+    }
+
+
+export const getGetBankConnectionStatusQueryOptions = <TData = Awaited<ReturnType<typeof getBankConnectionStatus>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBankConnectionStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBankConnectionStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBankConnectionStatus>>> = ({ signal }) => getBankConnectionStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBankConnectionStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBankConnectionStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getBankConnectionStatus>>>
+export type GetBankConnectionStatusQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get connected business bank accounts and onboarding status
+ */
+
+export function useGetBankConnectionStatus<TData = Awaited<ReturnType<typeof getBankConnectionStatus>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBankConnectionStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBankConnectionStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getConnectDemoBankAccountUrl = () => {
+
+
+
+
+  return `/api/integrations/banks/demo/accounts`
+}
+
+/**
+ * @summary Connect a demo business bank account
+ */
+export const connectDemoBankAccount = async (demoBankSelection: DemoBankSelection, options?: Parameters<typeof customFetch>[1]): Promise<BankAccount> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<BankAccount>(getConnectDemoBankAccountUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(demoBankSelection)
+  }
+);}
+
+
+
+
+
+export const getConnectDemoBankAccountMutationKey = () => ['connectDemoBankAccount'] as const;
+
+export const getConnectDemoBankAccountMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof connectDemoBankAccount>>, TError,ConnectDemoBankAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof connectDemoBankAccount>>, TError,ConnectDemoBankAccountMutationVariables, TContext> => {
+
+const mutationKey = getConnectDemoBankAccountMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof connectDemoBankAccount>>, ConnectDemoBankAccountMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  connectDemoBankAccount(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConnectDemoBankAccountMutationResult = NonNullable<Awaited<ReturnType<typeof connectDemoBankAccount>>>
+    export type ConnectDemoBankAccountMutationBody = BodyType<DemoBankSelection>
+    export type ConnectDemoBankAccountMutationError = ErrorType<void>
+    export type ConnectDemoBankAccountMutationVariables = {data: BodyType<DemoBankSelection>}
+
+    /**
+ * @summary Connect a demo business bank account
+ */
+export const useConnectDemoBankAccount = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof connectDemoBankAccount>>, TError,ConnectDemoBankAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof connectDemoBankAccount>>,
+        TError,
+        ConnectDemoBankAccountMutationVariables,
+        TContext
+      > => {
+      return useMutation(getConnectDemoBankAccountMutationOptions(options));
+    }
+
+export const getDisconnectBankAccountUrl = (accountId: string,) => {
+
+
+
+
+  return `/api/integrations/banks/accounts/${accountId}`
+}
+
+/**
+ * @summary Disconnect a business bank account
+ */
+export const disconnectBankAccount = async (accountId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDisconnectBankAccountUrl(accountId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDisconnectBankAccountMutationKey = () => ['disconnectBankAccount'] as const;
+
+export const getDisconnectBankAccountMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectBankAccount>>, TError,DisconnectBankAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof disconnectBankAccount>>, TError,DisconnectBankAccountMutationVariables, TContext> => {
+
+const mutationKey = getDisconnectBankAccountMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof disconnectBankAccount>>, DisconnectBankAccountMutationVariables> = (props) => {
+          const {accountId} = props ?? {};
+
+          return  disconnectBankAccount(accountId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DisconnectBankAccountMutationResult = NonNullable<Awaited<ReturnType<typeof disconnectBankAccount>>>
+
+    export type DisconnectBankAccountMutationError = ErrorType<void>
+    export type DisconnectBankAccountMutationVariables = {accountId: string}
+
+    /**
+ * @summary Disconnect a business bank account
+ */
+export const useDisconnectBankAccount = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectBankAccount>>, TError,DisconnectBankAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof disconnectBankAccount>>,
+        TError,
+        DisconnectBankAccountMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDisconnectBankAccountMutationOptions(options));
+    }
+
+export const getImportDemoBankTransactionsUrl = () => {
+
+
+
+
+  return `/api/integrations/banks/import`
+}
+
+/**
+ * @summary Import demo bank transactions for connected accounts
+ */
+export const importDemoBankTransactions = async ( options?: Parameters<typeof customFetch>[1]): Promise<BankImportResult> => {
+
+  return customFetch<BankImportResult>(getImportDemoBankTransactionsUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getImportDemoBankTransactionsMutationKey = () => ['importDemoBankTransactions'] as const;
+
+export const getImportDemoBankTransactionsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importDemoBankTransactions>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof importDemoBankTransactions>>, TError,void, TContext> => {
+
+const mutationKey = getImportDemoBankTransactionsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importDemoBankTransactions>>, void> = () => {
+
+
+          return  importDemoBankTransactions(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ImportDemoBankTransactionsMutationResult = NonNullable<Awaited<ReturnType<typeof importDemoBankTransactions>>>
+
+    export type ImportDemoBankTransactionsMutationError = ErrorType<void>
+
+
+    /**
+ * @summary Import demo bank transactions for connected accounts
+ */
+export const useImportDemoBankTransactions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importDemoBankTransactions>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof importDemoBankTransactions>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getImportDemoBankTransactionsMutationOptions(options));
+    }
+
+export const getListBankTransactionsUrl = () => {
+
+
+
+
+  return `/api/integrations/banks/transactions`
+}
+
+/**
+ * @summary List imported bank transactions
+ */
+export const listBankTransactions = async ( options?: Parameters<typeof customFetch>[1]): Promise<BankTransaction[]> => {
+
+  return customFetch<BankTransaction[]>(getListBankTransactionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListBankTransactionsQueryKey = () => {
+    return [
+    `/api/integrations/banks/transactions`
+    ] as const;
+    }
+
+
+export const getListBankTransactionsQueryOptions = <TData = Awaited<ReturnType<typeof listBankTransactions>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBankTransactions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListBankTransactionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listBankTransactions>>> = ({ signal }) => listBankTransactions({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listBankTransactions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListBankTransactionsQueryResult = NonNullable<Awaited<ReturnType<typeof listBankTransactions>>>
+export type ListBankTransactionsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List imported bank transactions
+ */
+
+export function useListBankTransactions<TData = Awaited<ReturnType<typeof listBankTransactions>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBankTransactions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListBankTransactionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 

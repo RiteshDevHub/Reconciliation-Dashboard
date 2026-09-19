@@ -6,6 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './bankAccount';
+export * from './bankConnectionStatus';
+export * from './bankImportResult';
+export * from './bankTransaction';
+export * from './demoBankSelection';
+export * from './demoBankSelectionInstitutionId';
 export * from './healthStatus';
 export * from './zohoConnectionStatus';
 export * from './zohoInvoice';

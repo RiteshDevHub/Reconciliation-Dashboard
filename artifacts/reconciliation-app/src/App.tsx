@@ -31,11 +31,13 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
+import { ConnectBankPage } from '@/pages/connect-bank';
+import { BankStatementsPage } from '@/pages/bank-statements';
 import { Link, Route, Switch, useLocation, Router as WouterRouter, Redirect } from 'wouter';
 import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
-import { useGetZohoConnectionStatus, getGetZohoConnectionStatusQueryKey, useListZohoInvoices, useSyncZohoInvoices, getListZohoInvoicesQueryKey, useConnectZohoDemo } from '@workspace/api-client-react';
+import { useGetZohoConnectionStatus, getGetZohoConnectionStatusQueryKey, useListZohoInvoices, useSyncZohoInvoices, getListZohoInvoicesQueryKey, useConnectZohoDemo, useGetBankConnectionStatus } from '@workspace/api-client-react';
 
 const queryClient = new QueryClient();
 
@@ -150,7 +152,7 @@ const receiptRows: { id: string; name: string; reference: string; date: string; 
 
 // --- Pages & Components ---
 
-function AppShell({ children, onImport }: { children: ReactNode; onImport?: () => void }) {
+export function AppShell({ children, onImport }: { children: ReactNode; onImport?: () => void }) {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, isLoaded } = useUser();
@@ -238,7 +240,7 @@ function AppShell({ children, onImport }: { children: ReactNode; onImport?: () =
   );
 }
 
-function StatusPill({ status }: { status: MatchStatus | string }) {
+export function StatusPill({ status }: { status: MatchStatus | string }) {
   const styles = status === 'Matched' || status === 'Paid' ? 'border-[#c4e9d7] bg-[#effaf4] text-[#18784e]' : status === 'Needs review' || status === 'Open' ? 'border-[#f0d0ad] bg-[#fff7ed] text-[#aa681e]' : 'border-[#cfdcf2] bg-[#f1f6ff] text-[#386da9]';
   return <span data-testid={`status-${status.toLowerCase().replaceAll(' ', '-')}`} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${styles}`}>{status === 'Matched' || status === 'Paid' ? <Check size={11} /> : <span className="size-1.5 rounded-full bg-current" />}{status}</span>;
 }
@@ -797,6 +799,39 @@ function RequireZoho({ component: Component }: { component: React.ComponentType 
   return <RequireAuth component={() => <ZohoConnectionGate component={Component} />} />;
 }
 
+function BankConnectionGate({ component: Component }: { component: React.ComponentType }) {
+  const { data: status, isLoading, isError } = useGetBankConnectionStatus();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[100dvh] bg-[#f7f5ef] flex flex-col items-center justify-center p-6">
+        <RefreshCw size={24} className="animate-spin text-[#2d8cff]" />
+        <div className="mt-4 text-[13px] font-medium text-[#77818c]">Checking bank connection...</div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-[100dvh] bg-[#f7f5ef] flex flex-col items-center justify-center p-6 text-center">
+        <CircleAlert size={30} className="text-[#e39b4f]" />
+        <h2 className="mt-4 text-[18px] font-semibold text-[#1c2430]">Bank connection unavailable</h2>
+        <button onClick={() => window.location.reload()} className="mt-5 rounded-xl bg-[#2d8cff] px-5 py-2.5 text-[13px] font-semibold text-white">Retry</button>
+      </div>
+    );
+  }
+
+  if (!status?.onboardingComplete) {
+    return <Redirect to="/connect-bank" />;
+  }
+
+  return <Component />;
+}
+
+function RequireOnboarding({ component: Component }: { component: React.ComponentType }) {
+  return <RequireZoho component={() => <BankConnectionGate component={Component} />} />;
+}
+
 function ConnectZohoPage() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
@@ -925,7 +960,7 @@ function DemoZohoLoginPage() {
           queryClient.invalidateQueries({ queryKey: getGetZohoConnectionStatusQueryKey() }),
           queryClient.invalidateQueries({ queryKey: getListZohoInvoicesQueryKey() }),
         ]);
-        setLocation('/dashboard');
+        setLocation('/connect-bank');
       },
     },
   });
@@ -1027,10 +1062,11 @@ function Router() {
       <Route path="/sign-up/*?" component={SignUpPage} />
       <Route path="/connect-zoho" component={() => <RequireAuth component={ConnectZohoPage} />} />
       <Route path="/demo-zoho-login" component={() => <RequireAuth component={DemoZohoLoginPage} />} />
-      <Route path="/dashboard" component={() => <RequireZoho component={DashboardPage} />} />
-      <Route path="/reconciliation" component={() => <RequireZoho component={() => <SectionPage title="Reconciliation" kicker="Payment control" description="A focused queue for every receipt that needs a confident match, from bank movement to the right invoice." icon={ClipboardCheck} />} />} />
-      <Route path="/invoices" component={() => <RequireZoho component={ZohoInvoicesPage} />} />
-      <Route path="/bank-statements" component={() => <RequireZoho component={() => <SectionPage title="Bank statements" kicker="Source records" description="Bring statements into one dependable place and keep a clean line from imported movement to final decision." icon={Landmark} />} />} />
+      <Route path="/connect-bank" component={() => <RequireZoho component={ConnectBankPage} />} />
+      <Route path="/dashboard" component={() => <RequireOnboarding component={DashboardPage} />} />
+      <Route path="/reconciliation" component={() => <RequireOnboarding component={() => <SectionPage title="Reconciliation" kicker="Payment control" description="A focused queue for every receipt that needs a confident match, from bank movement to the right invoice." icon={ClipboardCheck} />} />} />
+      <Route path="/invoices" component={() => <RequireOnboarding component={ZohoInvoicesPage} />} />
+      <Route path="/bank-statements" component={() => <RequireOnboarding component={BankStatementsPage} />} />
       <Route component={NotFound} />
     </Switch>
   );

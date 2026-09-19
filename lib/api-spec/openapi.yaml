@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: zoho
     description: Zoho Books connection operations
+  - name: banks
+    description: Business bank account connection operations
 paths:
   /healthz:
     get:
@@ -86,6 +88,94 @@ paths:
                 $ref: "#/components/schemas/ZohoConnectionStatus"
         "401":
           description: Not authenticated
+  /integrations/banks/status:
+    get:
+      operationId: getBankConnectionStatus
+      tags: [banks]
+      summary: Get connected business bank accounts and onboarding status
+      responses:
+        "200":
+          description: Bank connection status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BankConnectionStatus"
+        "401":
+          description: Not authenticated
+  /integrations/banks/demo/accounts:
+    post:
+      operationId: connectDemoBankAccount
+      tags: [banks]
+      summary: Connect a demo business bank account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DemoBankSelection"
+      responses:
+        "200":
+          description: Connected account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BankAccount"
+        "400":
+          description: Unsupported demo bank
+        "401":
+          description: Not authenticated
+        "409":
+          description: Zoho Books is not connected
+  /integrations/banks/accounts/{accountId}:
+    delete:
+      operationId: disconnectBankAccount
+      tags: [banks]
+      summary: Disconnect a business bank account
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Account disconnected
+        "401":
+          description: Not authenticated
+        "404":
+          description: Account not found
+  /integrations/banks/import:
+    post:
+      operationId: importDemoBankTransactions
+      tags: [banks]
+      summary: Import demo bank transactions for connected accounts
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BankImportResult"
+        "401":
+          description: Not authenticated
+        "409":
+          description: No bank account connected
+  /integrations/banks/transactions:
+    get:
+      operationId: listBankTransactions
+      tags: [banks]
+      summary: List imported bank transactions
+      responses:
+        "200":
+          description: Imported transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BankTransaction"
+        "401":
+          description: Not authenticated
 components:
   schemas:
     HealthStatus:
@@ -141,4 +231,57 @@ components:
         syncedAt:
           type: string
           format: date-time
+    DemoBankSelection:
+      type: object
+      required: [institutionId]
+      properties:
+        institutionId:
+          type: string
+          enum: [hdfc, icici]
+    BankAccount:
+      type: object
+      required: [accountId, provider, institutionId, institutionName, accountType, last4, currentBalance, currencyCode, status, lastSyncedAt, importCompleted, importedTransactionCount]
+      properties:
+        accountId: { type: string }
+        provider: { type: string }
+        institutionId: { type: string }
+        institutionName: { type: string }
+        accountType: { type: string }
+        last4: { type: string }
+        currentBalance: { type: string }
+        currencyCode: { type: string }
+        status: { type: string }
+        lastSyncedAt: { type: string, format: date-time }
+        importCompleted: { type: boolean }
+        importedTransactionCount: { type: integer }
+    BankConnectionStatus:
+      type: object
+      required: [connected, onboardingComplete, importedTransactionCount, accounts]
+      properties:
+        connected: { type: boolean }
+        onboardingComplete: { type: boolean }
+        importedTransactionCount: { type: integer }
+        accounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/BankAccount"
+    BankImportResult:
+      type: object
+      required: [importedCount, importedAt]
+      properties:
+        importedCount: { type: integer }
+        importedAt: { type: string, format: date-time }
+    BankTransaction:
+      type: object
+      required: [transactionId, accountId, transactionDate, description, debit, credit, balance, reference, currencyCode]
+      properties:
+        transactionId: { type: string }
+        accountId: { type: string }
+        transactionDate: { type: string }
+        description: { type: string }
+        debit: { type: string }
+        credit: { type: string }
+        balance: { type: string }
+        reference: { type: string }
+        currencyCode: { type: string }
 

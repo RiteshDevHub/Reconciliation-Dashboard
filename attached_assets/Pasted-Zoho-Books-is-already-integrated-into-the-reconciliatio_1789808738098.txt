@@ -1,0 +1,90 @@
+Zoho Books is already integrated into the reconciliation app.
+
+Now build the next onboarding step: connecting bank accounts for importing bank transactions.
+
+For now, DO NOT connect to real bank accounts. Build a realistic prototype/demo flow using dummy data.
+
+User flow:
+
+1. After the user connects Zoho Books, show a screen:
+   "Connect your bank accounts"
+   Explain briefly:
+   "We'll import your transactions and match payments against your Zoho Books invoices."
+
+2. Show a primary CTA:
+   "Connect bank account"
+
+3. When clicked, show a bank-selection screen with Indian banks:
+
+   * HDFC Bank
+   * ICICI Bank
+   * State Bank of India
+   * Axis Bank
+   * Kotak Mahindra Bank
+   * IndusInd Bank
+   * Yes Bank
+   * IDFC FIRST Bank
+   * Federal Bank
+
+4. Include a search field for finding a bank.
+
+5. When the user selects HDFC Bank, DO NOT open a real HDFC login. Instead, create a realistic demo connection flow.
+
+6. Show a dummy HDFC business/current account:
+   HDFC Bank
+   Current Account
+   •••• 4821
+
+   Show a button:
+   "Connect account"
+
+7. After connecting, show:
+   ✓ HDFC Bank •••• 4821
+   Connected
+
+8. Allow the user to click:
+   "+ Connect another bank account"
+
+9. Let them connect a second dummy account, for example:
+   ICICI Bank
+   Current Account
+   •••• 7392
+
+10. The connected accounts screen should show all connected accounts as separate cards.
+
+11. Each account should have:
+
+* Bank name
+* Account type
+* Last 4 digits
+* Current balance
+* Connection status
+* Last synced time
+* Disconnect option
+
+12. Add a "Continue" / "Import transactions" CTA.
+
+13. When clicked, show a short loading state:
+    "Importing transactions..."
+    Then show:
+    "1,284 transactions imported"
+
+14. Use realistic dummy transaction data containing:
+
+* Transaction date
+* Description
+* Debit
+* Credit
+* Balance
+* Transaction reference
+
+15. Include realistic payment transactions that can later be matched against the invoices already imported from Zoho Books.
+
+16. Design the data structure so that the dummy bank integration can later be replaced by an Account Aggregator API such as Setu without redesigning the user flow.
+
+Important:
+
+* This is a prototype. Do not ask users for real bank credentials.
+* Clearly use demo/mock data.
+* Do not imply that the HDFC/ICICI accounts are actually connected.
+* Keep the flow focused on business bank accounts and reconciliation.

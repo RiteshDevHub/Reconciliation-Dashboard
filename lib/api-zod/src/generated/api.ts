@@ -65,3 +65,86 @@ export const ConnectZohoDemoResponse = zod.object({
 })
 
 
+/**
+ * @summary Get connected business bank accounts and onboarding status
+ */
+export const GetBankConnectionStatusResponse = zod.object({
+  "connected": zod.boolean(),
+  "onboardingComplete": zod.boolean(),
+  "importedTransactionCount": zod.number().int(),
+  "accounts": zod.array(zod.object({
+  "accountId": zod.string(),
+  "provider": zod.string(),
+  "institutionId": zod.string(),
+  "institutionName": zod.string(),
+  "accountType": zod.string(),
+  "last4": zod.string(),
+  "currentBalance": zod.string(),
+  "currencyCode": zod.string(),
+  "status": zod.string(),
+  "lastSyncedAt": zod.coerce.date(),
+  "importCompleted": zod.boolean(),
+  "importedTransactionCount": zod.number().int()
+}))
+})
+
+
+/**
+ * @summary Connect a demo business bank account
+ */
+export const ConnectDemoBankAccountBody = zod.object({
+  "institutionId": zod.enum(['hdfc', 'icici'])
+})
+
+export const ConnectDemoBankAccountResponse = zod.object({
+  "accountId": zod.string(),
+  "provider": zod.string(),
+  "institutionId": zod.string(),
+  "institutionName": zod.string(),
+  "accountType": zod.string(),
+  "last4": zod.string(),
+  "currentBalance": zod.string(),
+  "currencyCode": zod.string(),
+  "status": zod.string(),
+  "lastSyncedAt": zod.coerce.date(),
+  "importCompleted": zod.boolean(),
+  "importedTransactionCount": zod.number().int()
+})
+
+
+/**
+ * @summary Disconnect a business bank account
+ */
+export const DisconnectBankAccountParams = zod.object({
+  "accountId": zod.coerce.string()
+})
+
+export const DisconnectBankAccountResponse = zod.void()
+
+
+/**
+ * @summary Import demo bank transactions for connected accounts
+ */
+export const ImportDemoBankTransactionsResponse = zod.object({
+  "importedCount": zod.number().int(),
+  "importedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary List imported bank transactions
+ */
+export const ListBankTransactionsResponseItem = zod.object({
+  "transactionId": zod.string(),
+  "accountId": zod.string(),
+  "transactionDate": zod.string(),
+  "description": zod.string(),
+  "debit": zod.string(),
+  "credit": zod.string(),
+  "balance": zod.string(),
+  "reference": zod.string(),
+  "currencyCode": zod.string()
+})
+export const ListBankTransactionsResponse = zod.array(ListBankTransactionsResponseItem)
+
+

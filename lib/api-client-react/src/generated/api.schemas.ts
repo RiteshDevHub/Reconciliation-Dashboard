@@ -38,3 +38,54 @@ export interface ZohoSyncResult {
   syncedAt: string;
 }
 
+export type DemoBankSelectionInstitutionId = typeof DemoBankSelectionInstitutionId[keyof typeof DemoBankSelectionInstitutionId];
+
+
+export const DemoBankSelectionInstitutionId = {
+  hdfc: 'hdfc',
+  icici: 'icici',
+} as const;
+
+export interface DemoBankSelection {
+  institutionId: DemoBankSelectionInstitutionId;
+}
+
+export interface BankAccount {
+  accountId: string;
+  provider: string;
+  institutionId: string;
+  institutionName: string;
+  accountType: string;
+  last4: string;
+  currentBalance: string;
+  currencyCode: string;
+  status: string;
+  lastSyncedAt: string;
+  importCompleted: boolean;
+  importedTransactionCount: number;
+}
+
+export interface BankConnectionStatus {
+  connected: boolean;
+  onboardingComplete: boolean;
+  importedTransactionCount: number;
+  accounts: BankAccount[];
+}
+
+export interface BankImportResult {
+  importedCount: number;
+  importedAt: string;
+}
+
+export interface BankTransaction {
+  transactionId: string;
+  accountId: string;
+  transactionDate: string;
+  description: string;
+  debit: string;
+  credit: string;
+  balance: string;
+  reference: string;
+  currencyCode: string;
+}
+

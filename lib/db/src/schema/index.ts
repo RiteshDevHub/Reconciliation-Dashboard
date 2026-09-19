@@ -19,3 +19,5 @@
 
 export * from "./zohoConnections";
 export * from "./zohoInvoices";
+export * from "./bankAccounts";
+export * from "./bankTransactions";
