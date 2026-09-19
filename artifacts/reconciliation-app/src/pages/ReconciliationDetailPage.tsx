@@ -52,6 +52,7 @@ export function ReconciliationDetailPage() {
   const [expandedInvoiceId, setExpandedInvoiceId] = useState<string | null>(null);
   const [generateMenuOpen, setGenerateMenuOpen] = useState(false);
   const [generatedDocuments, setGeneratedDocuments] = useState<{ sheet?: Blob; invoice?: Blob }>({});
+  const [generatedDocumentTypes, setGeneratedDocumentTypes] = useState({ sheet: false, invoice: false });
   const [preview, setPreview] = useState<'sheet' | 'invoice' | null>(null);
   const [emailOpen, setEmailOpen] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -192,12 +193,26 @@ Ritesh`;
   };
 
   const generateDocuments = (kind: 'sheet' | 'invoice' | 'both') => {
-    setGeneratedDocuments(current => ({
-      ...current,
-      ...(kind === 'sheet' || kind === 'both' ? { sheet: createReconciliationSheet() } : {}),
-      ...(kind === 'invoice' || kind === 'both' ? { invoice: createInvoicePdf() } : {}),
+    const generateSheet = kind === 'sheet' || kind === 'both';
+    const generateInvoice = kind === 'invoice' || kind === 'both';
+    setGeneratedDocumentTypes(current => ({
+      sheet: current.sheet || generateSheet,
+      invoice: current.invoice || generateInvoice,
     }));
     setGenerateMenuOpen(false);
+    const nextDocuments: { sheet?: Blob; invoice?: Blob } = {};
+    try {
+      if (generateSheet) nextDocuments.sheet = createReconciliationSheet();
+    } catch (error) {
+      console.error('Unable to create reconciliation download', error);
+    }
+    try {
+      if (generateInvoice) nextDocuments.invoice = createInvoicePdf();
+    } catch (error) {
+      console.error('Unable to create invoice download', error);
+    }
+    setGeneratedDocuments(current => ({ ...current, ...nextDocuments }));
+    setPreview(generateInvoice && !generateSheet ? 'invoice' : 'sheet');
   };
 
   const handleMatch = () => {
@@ -281,6 +296,25 @@ Ritesh`;
             </div>
           </div>
         </div>
+
+        {isBharatForge && (generatedDocumentTypes.sheet || generatedDocumentTypes.invoice) && (
+          <div className="border-b border-[#dce8f5] bg-[#f5f9fe] px-5 py-4 md:px-10">
+            <div className="mx-auto flex max-w-[1400px] flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-3">
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#e4f5ec] text-[#19805a]"><CheckCircle2 size={17} /></span>
+                <div>
+                  <div className="text-[13px] font-semibold text-[#273341]">Documents generated</div>
+                  <div className="mt-0.5 text-[11px] text-[#65707b]">Review the reconciliation sheet and invoice, then share them with the client.</div>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {generatedDocumentTypes.sheet && <button onClick={() => setPreview('sheet')} className="rounded-lg border border-[#cddbeb] bg-white px-3 py-2 text-[11px] font-semibold text-[#245e99] hover:border-[#2d8cff]">Open sheet</button>}
+                {generatedDocumentTypes.invoice && <button onClick={() => setPreview('invoice')} className="rounded-lg border border-[#cddbeb] bg-white px-3 py-2 text-[11px] font-semibold text-[#245e99] hover:border-[#2d8cff]">Open invoice</button>}
+                <button onClick={() => { setEmailSent(false); setEmailOpen(true); }} className="inline-flex items-center gap-2 rounded-lg bg-[#273341] px-3 py-2 text-[11px] font-semibold text-white hover:bg-[#18212b]"><Mail size={13} /> Share with client</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Two Pane Layout */}
         <div className="mx-auto mt-8 grid w-full max-w-[1400px] gap-8 px-5 md:px-10 lg:grid-cols-2">
@@ -480,7 +514,7 @@ Ritesh`;
           </div>
         </div>
 
-        {isBharatForge && (generatedDocuments.sheet || generatedDocuments.invoice) && (
+        {isBharatForge && (generatedDocumentTypes.sheet || generatedDocumentTypes.invoice) && (
           <div className="mx-auto mt-8 w-full max-w-[1400px] px-5 md:px-10">
             <div className="rounded-2xl border border-[#e4e0d7] bg-white p-6">
               <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -493,7 +527,7 @@ Ritesh`;
                 </button>
               </div>
               <div className="mt-5 grid gap-3 md:grid-cols-2">
-                {generatedDocuments.sheet && (
+                {generatedDocumentTypes.sheet && (
                   <div className="rounded-xl border border-[#e4e0d7] bg-[#fbfaf7] p-4">
                     <div className="flex items-start gap-3">
                       <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[#eaf5ef] text-[#19805a]"><FileSpreadsheet size={17} /></span>
@@ -502,13 +536,13 @@ Ritesh`;
                         <div className="mt-1 truncate font-mono text-[10px] text-[#7b8490]">{RECONCILIATION_FILE}</div>
                         <div className="mt-3 flex gap-2">
                           <button onClick={() => setPreview('sheet')} className="inline-flex items-center gap-1.5 rounded-md border border-[#dcd8ce] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#52606c] hover:border-[#2d8cff]"><ExternalLink size={12} /> Open</button>
-                          <button onClick={() => downloadDocument(generatedDocuments.sheet!, RECONCILIATION_FILE)} className="inline-flex items-center gap-1.5 rounded-md border border-[#dcd8ce] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#52606c] hover:border-[#2d8cff]"><Download size={12} /> Download</button>
+                          <button disabled={!generatedDocuments.sheet} onClick={() => generatedDocuments.sheet && downloadDocument(generatedDocuments.sheet, RECONCILIATION_FILE)} className="inline-flex items-center gap-1.5 rounded-md border border-[#dcd8ce] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#52606c] hover:border-[#2d8cff] disabled:cursor-not-allowed disabled:opacity-40"><Download size={12} /> Download</button>
                         </div>
                       </div>
                     </div>
                   </div>
                 )}
-                {generatedDocuments.invoice && (
+                {generatedDocumentTypes.invoice && (
                   <div className="rounded-xl border border-[#e4e0d7] bg-[#fbfaf7] p-4">
                     <div className="flex items-start gap-3">
                       <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[#fff1f1] text-[#c43b3b]"><FileText size={17} /></span>
@@ -517,7 +551,7 @@ Ritesh`;
                         <div className="mt-1 truncate font-mono text-[10px] text-[#7b8490]">{INVOICE_FILE}</div>
                         <div className="mt-3 flex gap-2">
                           <button onClick={() => setPreview('invoice')} className="inline-flex items-center gap-1.5 rounded-md border border-[#dcd8ce] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#52606c] hover:border-[#2d8cff]"><ExternalLink size={12} /> Open</button>
-                          <button onClick={() => downloadDocument(generatedDocuments.invoice!, INVOICE_FILE)} className="inline-flex items-center gap-1.5 rounded-md border border-[#dcd8ce] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#52606c] hover:border-[#2d8cff]"><Download size={12} /> Download</button>
+                          <button disabled={!generatedDocuments.invoice} onClick={() => generatedDocuments.invoice && downloadDocument(generatedDocuments.invoice, INVOICE_FILE)} className="inline-flex items-center gap-1.5 rounded-md border border-[#dcd8ce] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#52606c] hover:border-[#2d8cff] disabled:cursor-not-allowed disabled:opacity-40"><Download size={12} /> Download</button>
                         </div>
                       </div>
                     </div>
@@ -610,7 +644,10 @@ Ritesh`;
                   <div className="text-[14px] font-semibold text-[#273341]">{preview === 'sheet' ? 'Reconciliation statement' : 'Invoice INV-2058'}</div>
                   <div className="mt-0.5 font-mono text-[10px] text-[#8e959b]">{preview === 'sheet' ? RECONCILIATION_FILE : INVOICE_FILE}</div>
                 </div>
-                <button onClick={() => setPreview(null)} className="rounded-lg p-2 text-[#65707b] hover:bg-[#f0eee7]" aria-label="Close preview"><X size={18} /></button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => { setPreview(null); setEmailSent(false); setEmailOpen(true); }} className="inline-flex items-center gap-2 rounded-lg bg-[#273341] px-3 py-2 text-[11px] font-semibold text-white hover:bg-[#18212b]"><Mail size={13} /> Share with client</button>
+                  <button onClick={() => setPreview(null)} className="rounded-lg p-2 text-[#65707b] hover:bg-[#f0eee7]" aria-label="Close preview"><X size={18} /></button>
+                </div>
               </div>
               {preview === 'sheet' ? (
                 <div className="p-6">
@@ -683,8 +720,8 @@ Ritesh`;
                 <div className="rounded-xl border border-[#e4e0d7] bg-[#fbfaf7] p-4">
                   <div className="text-[11px] font-semibold uppercase tracking-wider text-[#65707b]">Attachments</div>
                   <div className="mt-2 space-y-2 font-mono text-[10px] text-[#273341]">
-                    {generatedDocuments.sheet && <div className="flex items-center gap-2"><CheckCircle2 size={13} className="text-[#19805a]" /> {RECONCILIATION_FILE}</div>}
-                    {generatedDocuments.invoice && <div className="flex items-center gap-2"><CheckCircle2 size={13} className="text-[#19805a]" /> {INVOICE_FILE}</div>}
+                    {generatedDocumentTypes.sheet && <div className="flex items-center gap-2"><CheckCircle2 size={13} className="text-[#19805a]" /> {RECONCILIATION_FILE}</div>}
+                    {generatedDocumentTypes.invoice && <div className="flex items-center gap-2"><CheckCircle2 size={13} className="text-[#19805a]" /> {INVOICE_FILE}</div>}
                   </div>
                 </div>
                 {emailSent && <div className="rounded-lg bg-[#edf9f3] px-4 py-3 text-[12px] font-semibold text-[#18784e]"><CheckCircle2 size={15} className="mr-2 inline" /> Demo email sent. No real email was transmitted.</div>}
