@@ -478,8 +478,13 @@ function MarketingPage() {
           <span className="text-[19px] font-semibold tracking-[-.03em]">Clear<span className="text-[#2d8cff]">Match</span></span>
         </div>
         <div className="flex items-center gap-4">
-          <Link href="/sign-in" className="text-[13px] font-semibold text-[#5d6875] hover:text-[#1c2430]" data-testid="link-signin">Sign in</Link>
-          <Link href="/sign-up" className="rounded-full bg-[#1c2430] px-5 py-2.5 text-[13px] font-semibold text-white shadow-md transition hover:bg-[#2c3846]" data-testid="link-signup">Get started</Link>
+          <Show when="signed-out">
+            <Link href="/sign-in" className="text-[13px] font-semibold text-[#5d6875] hover:text-[#1c2430]" data-testid="link-signin">Sign in</Link>
+            <Link href="/sign-up" className="rounded-full bg-[#1c2430] px-5 py-2.5 text-[13px] font-semibold text-white shadow-md transition hover:bg-[#2c3846]" data-testid="link-signup">Get started</Link>
+          </Show>
+          <Show when="signed-in">
+            <Link href="/dashboard" className="rounded-full bg-[#1c2430] px-5 py-2.5 text-[13px] font-semibold text-white shadow-md transition hover:bg-[#2c3846]" data-testid="link-open-workspace">Open workspace</Link>
+          </Show>
         </div>
       </header>
 
@@ -504,12 +509,19 @@ function MarketingPage() {
             </p>
             
             <div className="animate-rise delay-3 mt-10 flex flex-col sm:flex-row items-center gap-4">
-              <Link href="/sign-up" className="flex items-center justify-center rounded-full bg-[#2d8cff] px-8 py-3.5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgba(45,140,255,.25)] transition hover:bg-[#1877e4]" data-testid="hero-signup">
-                Start your workspace
-              </Link>
-              <Link href="/sign-in" className="flex items-center justify-center rounded-full border border-[#d2cebf] bg-white px-8 py-3.5 text-[14px] font-semibold text-[#303b47] transition hover:bg-[#f2efe7]" data-testid="hero-signin">
-                Sign in to your account
-              </Link>
+              <Show when="signed-out">
+                <Link href="/sign-up" className="flex items-center justify-center rounded-full bg-[#2d8cff] px-8 py-3.5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgba(45,140,255,.25)] transition hover:bg-[#1877e4]" data-testid="hero-signup">
+                  Start your workspace
+                </Link>
+                <Link href="/sign-in" className="flex items-center justify-center rounded-full border border-[#d2cebf] bg-white px-8 py-3.5 text-[14px] font-semibold text-[#303b47] transition hover:bg-[#f2efe7]" data-testid="hero-signin">
+                  Sign in to your account
+                </Link>
+              </Show>
+              <Show when="signed-in">
+                <Link href="/dashboard" className="flex items-center justify-center rounded-full bg-[#2d8cff] px-8 py-3.5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgba(45,140,255,.25)] transition hover:bg-[#1877e4]" data-testid="hero-open-workspace">
+                  Continue to your workspace
+                </Link>
+              </Show>
             </div>
           </div>
 
@@ -647,9 +659,16 @@ function MarketingPage() {
             <h2 className="display text-[40px] leading-tight text-[#1c2430]">Bring calm back to your financial close.</h2>
             <p className="mt-5 text-[15px] text-[#636e7a]">Join Indian finance teams relying on ClearMatch to close their books perfectly, every time.</p>
             <div className="mt-8 flex items-center justify-center">
-              <Link href="/sign-up" className="flex items-center justify-center rounded-full bg-[#1c2430] px-8 py-3.5 text-[14px] font-semibold text-white shadow-xl transition hover:bg-[#2c3846]" data-testid="footer-signup">
-                Create your free workspace
-              </Link>
+              <Show when="signed-out">
+                <Link href="/sign-up" className="flex items-center justify-center rounded-full bg-[#1c2430] px-8 py-3.5 text-[14px] font-semibold text-white shadow-xl transition hover:bg-[#2c3846]" data-testid="footer-signup">
+                  Create your free workspace
+                </Link>
+              </Show>
+              <Show when="signed-in">
+                <Link href="/dashboard" className="flex items-center justify-center rounded-full bg-[#1c2430] px-8 py-3.5 text-[14px] font-semibold text-white shadow-xl transition hover:bg-[#2c3846]" data-testid="footer-open-workspace">
+                  Open your workspace
+                </Link>
+              </Show>
             </div>
           </div>
         </section>
@@ -672,7 +691,7 @@ function MarketingPage() {
 function SignInPage() {
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-[#f7f5ef] quiet-grid px-4 py-12">
-      <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+      <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} fallbackRedirectUrl={`${basePath}/dashboard`} />
     </div>
   );
 }
@@ -680,7 +699,7 @@ function SignInPage() {
 function SignUpPage() {
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-[#f7f5ef] quiet-grid px-4 py-12">
-      <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
+      <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} fallbackRedirectUrl={`${basePath}/dashboard`} />
     </div>
   );
 }
@@ -843,25 +862,12 @@ function ConnectZohoPage() {
   );
 }
 
-function HomeRedirect() {
-  return (
-    <>
-      <Show when="signed-in">
-        <Redirect to="/dashboard" />
-      </Show>
-      <Show when="signed-out">
-        <MarketingPage />
-      </Show>
-    </>
-  );
-}
-
 // --- App Router & Setup ---
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={HomeRedirect} />
+      <Route path="/" component={MarketingPage} />
       <Route path="/sign-in/*?" component={SignInPage} />
       <Route path="/sign-up/*?" component={SignUpPage} />
       <Route path="/connect-zoho" component={() => <RequireAuth component={ConnectZohoPage} />} />
