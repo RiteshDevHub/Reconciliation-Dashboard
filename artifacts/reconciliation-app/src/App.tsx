@@ -726,7 +726,7 @@ function MarketingPage() {
 function SignInPage() {
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-[#f7f5ef] quiet-grid px-4 py-12">
-      <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} fallbackRedirectUrl={`${basePath}/dashboard`} />
+      <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} fallbackRedirectUrl={basePath || "/"} />
     </div>
   );
 }
@@ -734,8 +734,58 @@ function SignInPage() {
 function SignUpPage() {
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-[#f7f5ef] quiet-grid px-4 py-12">
-      <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} fallbackRedirectUrl={`${basePath}/dashboard`} />
+      <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} fallbackRedirectUrl={basePath || "/"} />
     </div>
+  );
+}
+
+function AuthenticatedEntry() {
+  const zohoStatus = useGetZohoConnectionStatus();
+  const bankStatus = useGetBankConnectionStatus();
+
+  if (zohoStatus.isLoading || bankStatus.isLoading) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#f7f5ef] p-6">
+        <RefreshCw size={24} className="animate-spin text-[#2d8cff]" />
+        <div className="mt-4 text-[13px] font-medium text-[#77818c]">Preparing your workspace...</div>
+      </div>
+    );
+  }
+
+  if (zohoStatus.isError || bankStatus.isError) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#f7f5ef] p-6 text-center">
+        <div className="w-full max-w-[400px] rounded-2xl border border-[#e4e0d7] bg-white p-6">
+          <CircleAlert size={32} className="mx-auto mb-4 text-[#e39b4f]" />
+          <h2 className="text-[18px] font-semibold text-[#1c2430]">Workspace unavailable</h2>
+          <p className="mt-2 text-[13px] text-[#636e7a]">We couldn't check your integration setup.</p>
+          <button onClick={() => window.location.reload()} className="mt-5 w-full rounded-xl bg-[#2d8cff] py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#1877e4]">Retry</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!zohoStatus.data?.connected) {
+    return <Redirect to="/connect-zoho" />;
+  }
+
+  if (!bankStatus.data?.onboardingComplete) {
+    return <Redirect to="/connect-bank" />;
+  }
+
+  return <Redirect to="/dashboard" />;
+}
+
+function EntryPage() {
+  return (
+    <>
+      <Show when="signed-out">
+        <MarketingPage />
+      </Show>
+      <Show when="signed-in">
+        <AuthenticatedEntry />
+      </Show>
+    </>
   );
 }
 
@@ -1085,7 +1135,7 @@ function DemoZohoLoginPage() {
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={MarketingPage} />
+      <Route path="/" component={EntryPage} />
       <Route path="/sign-in/*?" component={SignInPage} />
       <Route path="/sign-up/*?" component={SignUpPage} />
       <Route path="/sign-out" component={SignOutPage} />
