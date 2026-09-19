@@ -277,13 +277,13 @@ export function ReconciliationKanbanPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto p-5 md:p-10">
+        <div className="overflow-x-auto overflow-y-clip p-5 md:p-10">
           <div className="flex min-w-max items-stretch gap-6">
             {columns.map(col => {
               const colSummaries = filteredSummaries.filter(s => col.statuses.includes(s.status));
               return (
                 <div key={col.title} className="flex w-[340px] flex-col rounded-xl bg-[#f0eee7]/50 p-4">
-                  <div className="sticky top-[72px] z-10 -mx-1 mb-4 flex items-center justify-between rounded-lg bg-[#eeece5] px-1 py-3">
+                  <div className="sticky top-0 z-10 -mx-1 mb-4 flex items-center justify-between rounded-lg bg-[#eeece5] px-1 py-3">
                     <h2 className="text-[13px] font-semibold uppercase tracking-wider text-[#65707b]">{col.title}</h2>
                     <span className="rounded-full bg-[#e4e0d7] px-2 py-0.5 text-[11px] font-medium text-[#273341]">{colSummaries.length}</span>
                   </div>

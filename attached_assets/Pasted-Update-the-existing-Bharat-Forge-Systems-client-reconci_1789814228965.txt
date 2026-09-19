@@ -1,0 +1,293 @@
+Update the existing Bharat Forge Systems client reconciliation detail page.
+
+Do not redesign the existing page. Keep the current layout, styling, data, sidebar, invoice cards, payment cards, and reconciliation summary.
+
+Add a document-generation and sharing workflow.
+
+## 1. Add a "Generate documents" action
+
+Add a prominent button near the top of the Bharat Forge Systems detail page:
+
+**Generate documents**
+
+The button should have a small document/file icon.
+
+When clicked, open a small dropdown or modal with:
+
+* Reconciliation sheet
+* Invoice
+* Generate both
+
+For the prototype, default to **Generate both**.
+
+---
+
+## 2. Generate reconciliation sheet
+
+When the user selects "Reconciliation sheet", generate a real `.xlsx` Excel file using the existing client data.
+
+The Excel file should be named:
+
+`Bharat_Forge_Systems_Reconciliation_Aug_2026.xlsx`
+
+The spreadsheet should contain:
+
+### Header
+
+Bharat Forge Systems
+Client Reconciliation Statement
+
+Period:
+May 2026 – August 2026
+
+Currency:
+INR
+
+### Client information
+
+Client:
+Bharat Forge Systems
+
+Client type:
+India Client
+
+Billing:
+Monthly Retainer
+
+### Invoice reconciliation table
+
+Columns:
+
+* Invoice Number
+* Billing Period
+* Invoice Date
+* Due Date
+* Invoice Amount
+* Payment Received
+* Outstanding
+* Payment Status
+* Matched Transaction
+
+Use the actual dummy data shown on the current page.
+
+For example:
+
+INV-2018
+May 2026 Retainer
+₹2,00,000
+₹2,00,000 received
+₹0 outstanding
+Paid
+NEFT-BH-761
+
+INV-2029
+June 2026 Retainer
+₹2,00,000
+₹2,00,000 received
+₹0 outstanding
+Paid
+NEFT-BH-824
+
+INV-2040
+July 2026 Retainer
+₹2,00,000
+₹2,00,000 received
+₹0 outstanding
+Paid
+NEFT-BH-906
+
+INV-2058
+August 2026 Retainer
+₹2,00,000
+₹1,50,000 received
+₹50,000 outstanding
+Partially Paid
+NEFT-BH-992
+
+### Summary
+
+Total invoiced: ₹8,00,000
+Total received: ₹7,50,000
+Outstanding: ₹50,000
+
+Add a final section:
+
+**Amount outstanding: ₹50,000**
+
+**Reason:**
+₹1,50,000 received against INV-2058. ₹50,000 remains outstanding.
+
+Make the Excel file professionally formatted and readable.
+
+---
+
+## 3. Generate/open invoice
+
+Add an invoice document for the outstanding invoice:
+
+**INV-2058**
+
+This should represent the existing August 2026 invoice from the current data.
+
+The invoice should contain:
+
+Bharat Forge Systems
+Invoice: INV-2058
+Billing period: August 2026
+Invoice date: August 1, 2026
+Due date: August 30, 2026
+
+Invoice amount:
+₹2,00,000
+
+Payment received:
+₹1,50,000
+
+Balance due:
+₹50,000
+
+Show the invoice in a clean invoice-document view.
+
+For the prototype, generate a PDF invoice:
+
+`Bharat_Forge_Systems_INV-2058.pdf`
+
+Do not create a new accounting record. This is only a document generated from the existing invoice/reconciliation data.
+
+---
+
+## 4. Add "Documents" section to the client page
+
+After documents have been generated, show a small Documents section or document panel on the page.
+
+Show:
+
+### Reconciliation statement
+
+Bharat_Forge_Systems_Reconciliation_Aug_2026.xlsx
+
+[Open] [Download]
+
+### Invoice
+
+INV-2058 — August 2026
+
+[Open] [Download]
+
+"Open" should open a preview/viewer in the application.
+
+For the Excel file, show a simple spreadsheet-style preview.
+
+For the invoice, show a PDF/document-style preview.
+
+---
+
+## 5. Add "Share with client" button
+
+After the documents are generated, show:
+
+**Share with client**
+
+When clicked, open an email composition modal.
+
+Pre-fill:
+
+From:
+[riteshux@gmail.com](mailto:riteshux@gmail.com)
+
+To:
+[accounts@bharatforge.com](mailto:accounts@bharatforge.com)
+
+Subject:
+
+Bharat Forge Systems — Reconciliation Statement & Outstanding Invoice
+
+Email body:
+
+Hi Accounts Team,
+
+Please find attached the reconciliation statement for the period May–August 2026 along with the outstanding invoice INV-2058.
+
+Reconciliation summary:
+
+Total invoiced: ₹8,00,000
+Total received: ₹7,50,000
+Outstanding: ₹50,000
+
+The outstanding amount of ₹50,000 relates to invoice INV-2058 for the August 2026 retainer.
+
+Please let us know if you need any clarification.
+
+Regards,
+Ritesh
+
+Show attachments:
+
+✓ Bharat_Forge_Systems_Reconciliation_Aug_2026.xlsx
+✓ Bharat_Forge_Systems_INV-2058.pdf
+
+---
+
+## 6. Do NOT implement a real email API yet
+
+We don't currently have an email API configured.
+
+Therefore:
+
+* Do not ask for Gmail credentials.
+* Do not implement OAuth for Gmail.
+* Do not expose or request email passwords/API keys.
+* Do not pretend that an email was actually sent.
+
+Instead, make the prototype email flow functional visually.
+
+The modal should have:
+
+[Cancel] [Send email]
+
+When the user clicks "Send email", show:
+
+**Email ready to send**
+
+or
+
+**Demo email sent**
+
+Clearly indicate that this is a prototype/demo action.
+
+If possible, also provide a secondary:
+
+**Open in email client**
+
+action using a `mailto:` link with the pre-filled recipient, subject and body.
+
+---
+
+## 7. Important interaction
+
+The ideal user journey should be:
+
+Client detail page
+↓
+Generate documents
+↓
+Generate both
+↓
+Documents generated
+↓
+[Open reconciliation sheet]
+[Open invoice]
+↓
+Share with client
+↓
+Email composition modal
+↓
+Attachments automatically included
+↓
+Send email / Demo send
+
+The user should never have to manually find the invoice or reconciliation data again.
+
+All document content must be generated from the existing underlying client, invoice and payment data rather than hardcoded separately.
+
+Keep the existing ClearMatch visual language and UI design. Do not redesign the page.
