@@ -159,6 +159,7 @@ router.get("/integrations/zoho/invoices", async (req, res): Promise<void> => {
     invoiceId: zohoInvoicesTable.invoiceId,
     invoiceNumber: zohoInvoicesTable.invoiceNumber,
     customerName: zohoInvoicesTable.customerName,
+    description: zohoInvoicesTable.description,
     status: zohoInvoicesTable.status,
     invoiceDate: zohoInvoicesTable.invoiceDate,
     dueDate: zohoInvoicesTable.dueDate,

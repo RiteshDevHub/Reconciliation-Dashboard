@@ -10,6 +10,8 @@ export interface ZohoInvoice {
   invoiceId: string;
   invoiceNumber: string;
   customerName: string;
+  /** @nullable */
+  description?: string | null;
   status: string;
   invoiceDate: string;
   /** @nullable */

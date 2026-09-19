@@ -103,6 +103,7 @@ export async function syncInvoicesForUser(userId: string): Promise<{ syncedCount
       invoiceId: invoice.invoice_id,
       invoiceNumber: invoice.invoice_number,
       customerName: invoice.customer_name ?? "Unknown customer",
+      description: null,
       status: invoice.status ?? "unknown",
       invoiceDate: invoice.date,
       dueDate: invoice.due_date || null,

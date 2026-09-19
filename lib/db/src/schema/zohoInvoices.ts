@@ -7,6 +7,7 @@ export const zohoInvoicesTable = pgTable("zoho_invoices", {
   invoiceId: text("invoice_id").notNull(),
   invoiceNumber: text("invoice_number").notNull(),
   customerName: text("customer_name").notNull(),
+  description: text("description"),
   status: text("status").notNull(),
   invoiceDate: text("invoice_date").notNull(),
   dueDate: text("due_date"),

@@ -115,6 +115,8 @@ components:
           type: string
         customerName:
           type: string
+        description:
+          type: ["string", "null"]
         status:
           type: string
         invoiceDate:

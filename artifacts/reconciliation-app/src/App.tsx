@@ -184,7 +184,7 @@ function AppShell({ children, onImport }: { children: ReactNode; onImport?: () =
           <div className="flex items-center gap-2.5">
             <span className="grid size-7 place-items-center rounded-lg bg-[#d8f1e7] text-[#19774e]"><Building2 size={14} /></span>
             <div className="min-w-0"><div className="truncate text-[12px] font-medium text-[#eff3f1]">{status?.organizationName || 'Zoho Books'}</div><div className="mt-0.5 flex items-center gap-1 text-[10px] text-[#7dcaab]"><span className="size-1.5 rounded-full bg-[#4fca91]" /> Connected</div></div>
-            <button className="ml-auto rounded-md p-1 text-[#77848e] hover:bg-white/10 hover:text-white" data-testid="button-connection-settings"><Settings2 size={14} /></button>
+            <Link href="/demo-zoho-login" className="ml-auto rounded-md p-1 text-[#77848e] hover:bg-white/10 hover:text-white" data-testid="button-connection-settings"><Settings2 size={14} /></Link>
           </div>
         </div>
 
@@ -440,6 +440,7 @@ function ZohoInvoicesPage() {
                 <div key={invoice.invoiceId} className="flex items-center justify-between gap-3 py-4">
                   <div>
                     <div className="text-[12px] font-semibold text-[#35414d]">{invoice.customerName}</div>
+                     {invoice.description && <div className="mt-1 max-w-[460px] text-[10px] leading-4 text-[#737d86]">{invoice.description}</div>}
                     <div className="flex items-center gap-2 mt-1">
                       <span className="mono text-[10px] text-[#99a0a5]">{invoice.invoiceNumber}</span>
                       <span className="text-[10px] text-[#b0b7bc]">·</span>
@@ -799,17 +800,6 @@ function RequireZoho({ component: Component }: { component: React.ComponentType 
 function ConnectZohoPage() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const demoMutation = useConnectZohoDemo({
-    mutation: {
-      onSuccess: async () => {
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: getGetZohoConnectionStatusQueryKey() }),
-          queryClient.invalidateQueries({ queryKey: getListZohoInvoicesQueryKey() }),
-        ]);
-        setLocation('/dashboard');
-      },
-    },
-  });
   
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -893,20 +883,13 @@ function ConnectZohoPage() {
 
            <button
              type="button"
-             onClick={() => demoMutation.mutate()}
-             disabled={demoMutation.isPending}
-             className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-[#2d8cff] py-3.5 text-[14px] font-semibold text-white shadow-[0_5px_15px_rgba(45,140,255,.18)] transition hover:bg-[#1877e4] disabled:cursor-not-allowed disabled:opacity-60"
+             onClick={() => setLocation('/demo-zoho-login')}
+             className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-[#2d8cff] py-3.5 text-[14px] font-semibold text-white shadow-[0_5px_15px_rgba(45,140,255,.18)] transition hover:bg-[#1877e4]"
              data-testid="button-connect-demo-zoho"
            >
-             {demoMutation.isPending ? <RefreshCw size={16} className="animate-spin" /> : <Building2 size={16} />}
-             {demoMutation.isPending ? 'Preparing demo workspace...' : 'Use demo Zoho Books account'}
+             <Building2 size={16} />
+             Sign in to demo Zoho Books
            </button>
-
-           {demoMutation.isError && (
-             <div className="mt-3 rounded-xl border border-[#f0c9bd] bg-[#fff6f3] px-4 py-3 text-center text-[12px] text-[#a54b35]">
-               We couldn't prepare the demo workspace. Please try again.
-             </div>
-           )}
 
            <div className="my-5 flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[.14em] text-[#a0a6ab]">
              <span className="h-px flex-1 bg-[#e8e5dd]" /> or <span className="h-px flex-1 bg-[#e8e5dd]" />
@@ -917,8 +900,117 @@ function ConnectZohoPage() {
            </a>
            
            <p className="mt-5 text-center text-[11px] leading-5 text-[#8e959b]">
-             Demo data includes Indian and US customers in INR and USD. No Zoho credentials are required.
+             The demo sign-in simulates Zoho authentication and never sends credentials to Zoho.
            </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const DEMO_ZOHO_EMAIL = 'finance@pixelcraft-demo.in';
+const DEMO_ZOHO_PASSWORD = 'PixelCraft@2026';
+
+function DemoZohoLoginPage() {
+  const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
+  const [step, setStep] = useState<'login' | 'consent'>('login');
+  const [email, setEmail] = useState(DEMO_ZOHO_EMAIL);
+  const [password, setPassword] = useState(DEMO_ZOHO_PASSWORD);
+  const [loginError, setLoginError] = useState('');
+  const demoMutation = useConnectZohoDemo({
+    mutation: {
+      onSuccess: async () => {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: getGetZohoConnectionStatusQueryKey() }),
+          queryClient.invalidateQueries({ queryKey: getListZohoInvoicesQueryKey() }),
+        ]);
+        setLocation('/dashboard');
+      },
+    },
+  });
+
+  const submitDemoLogin = () => {
+    if (email.trim().toLowerCase() !== DEMO_ZOHO_EMAIL || password !== DEMO_ZOHO_PASSWORD) {
+      setLoginError('Use the demo email and password shown below.');
+      return;
+    }
+    setLoginError('');
+    setStep('consent');
+  };
+
+  return (
+    <div className="min-h-[100dvh] bg-[#f5f7f9] px-5 py-12 text-[#18222d]">
+      <div className="mx-auto max-w-[460px]">
+        <div className="mb-7 flex items-center justify-between">
+          <button onClick={() => setLocation('/connect-zoho')} className="text-[12px] font-semibold text-[#65717d] hover:text-[#1d2935]">← Back to ClearMatch</button>
+          <span className="rounded-full border border-[#cfe1f2] bg-[#edf6ff] px-3 py-1 text-[9px] font-semibold uppercase tracking-[.14em] text-[#2674b9]">Demo only</span>
+        </div>
+
+        <div className="overflow-hidden rounded-2xl border border-[#dfe4e8] bg-white shadow-[0_20px_60px_rgba(30,45,58,.1)]">
+          <div className="border-b border-[#edf0f2] px-8 py-6">
+            <div className="flex items-center gap-3">
+              <span className="grid size-10 place-items-center rounded-xl bg-[#e8f5ee] text-[#21815a]"><Building2 size={20} /></span>
+              <div>
+                <div className="text-[17px] font-semibold">Zoho Books</div>
+                <div className="text-[10px] uppercase tracking-[.14em] text-[#8a949d]">Simulated authorization</div>
+              </div>
+            </div>
+          </div>
+
+          {step === 'login' ? (
+            <div className="p-8">
+              <h1 className="text-[24px] font-semibold tracking-[-.03em]">Sign in to your business account</h1>
+              <p className="mt-2 text-[13px] leading-5 text-[#697580]">Use the prototype credentials to continue as PixelCraft Technologies Pvt Ltd.</p>
+
+              <div className="mt-6 rounded-xl border border-[#dceaf7] bg-[#f3f8fd] p-4">
+                <div className="text-[9px] font-semibold uppercase tracking-[.14em] text-[#6e8295]">Demo credentials</div>
+                <div className="mt-3 grid gap-2 text-[12px]">
+                  <div className="flex justify-between gap-4"><span className="text-[#7d8994]">Email</span><span className="mono font-semibold text-[#314151]">{DEMO_ZOHO_EMAIL}</span></div>
+                  <div className="flex justify-between gap-4"><span className="text-[#7d8994]">Password</span><span className="mono font-semibold text-[#314151]">{DEMO_ZOHO_PASSWORD}</span></div>
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-4">
+                <label className="block">
+                  <span className="text-[11px] font-semibold text-[#4e5b67]">Email address</span>
+                  <input value={email} onChange={(event) => setEmail(event.target.value)} className="mt-2 w-full rounded-xl border border-[#d9dfe4] px-4 py-3 text-[13px] outline-none transition focus:border-[#2d8cff] focus:ring-2 focus:ring-[#2d8cff]/10" data-testid="input-demo-zoho-email" />
+                </label>
+                <label className="block">
+                  <span className="text-[11px] font-semibold text-[#4e5b67]">Password</span>
+                  <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="mt-2 w-full rounded-xl border border-[#d9dfe4] px-4 py-3 text-[13px] outline-none transition focus:border-[#2d8cff] focus:ring-2 focus:ring-[#2d8cff]/10" data-testid="input-demo-zoho-password" />
+                </label>
+              </div>
+
+              {loginError && <div className="mt-4 rounded-xl border border-[#f0c9bd] bg-[#fff6f3] px-4 py-3 text-[12px] text-[#a54b35]">{loginError}</div>}
+
+              <button onClick={submitDemoLogin} className="mt-6 w-full rounded-xl bg-[#e84b4f] py-3.5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[#d83e42]" data-testid="button-demo-zoho-sign-in">
+                Sign in
+              </button>
+              <p className="mt-4 text-center text-[10px] leading-4 text-[#929ba3]">These credentials work only inside this prototype and are not stored as a real account password.</p>
+            </div>
+          ) : (
+            <div className="p-8">
+              <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-[#eaf5ef] text-[#21815a]"><Link2 size={25} /></div>
+              <h1 className="mt-5 text-center text-[23px] font-semibold tracking-[-.03em]">Allow ClearMatch access?</h1>
+              <p className="mt-2 text-center text-[13px] leading-5 text-[#697580]">ClearMatch is requesting read-only access to PixelCraft Technologies Pvt Ltd.</p>
+
+              <div className="mt-6 space-y-3 rounded-xl border border-[#e1e5e8] bg-[#f8f9fa] p-5">
+                <div className="flex items-start gap-3"><CheckCircle2 size={16} className="mt-0.5 shrink-0 text-[#21815a]" /><div><div className="text-[12px] font-semibold">View invoices</div><div className="mt-1 text-[10px] text-[#7d8790]">Invoice numbers, customers, totals, currencies, and payment status</div></div></div>
+                <div className="flex items-start gap-3"><CheckCircle2 size={16} className="mt-0.5 shrink-0 text-[#21815a]" /><div><div className="text-[12px] font-semibold">View organization details</div><div className="mt-1 text-[10px] text-[#7d8790]">Business name and organization identifier</div></div></div>
+              </div>
+
+              {demoMutation.isError && <div className="mt-4 rounded-xl border border-[#f0c9bd] bg-[#fff6f3] px-4 py-3 text-center text-[12px] text-[#a54b35]">We couldn't connect the demo organization. Please try again.</div>}
+
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <button onClick={() => setStep('login')} className="rounded-xl border border-[#d8dde1] py-3 text-[12px] font-semibold text-[#5d6872] hover:bg-[#f7f8f9]">Cancel</button>
+                <button onClick={() => demoMutation.mutate()} disabled={demoMutation.isPending} className="flex items-center justify-center gap-2 rounded-xl bg-[#e84b4f] py-3 text-[12px] font-semibold text-white hover:bg-[#d83e42] disabled:opacity-60" data-testid="button-demo-zoho-allow">
+                  {demoMutation.isPending && <RefreshCw size={14} className="animate-spin" />}
+                  {demoMutation.isPending ? 'Connecting...' : 'Allow access'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -934,6 +1026,7 @@ function Router() {
       <Route path="/sign-in/*?" component={SignInPage} />
       <Route path="/sign-up/*?" component={SignUpPage} />
       <Route path="/connect-zoho" component={() => <RequireAuth component={ConnectZohoPage} />} />
+      <Route path="/demo-zoho-login" component={() => <RequireAuth component={DemoZohoLoginPage} />} />
       <Route path="/dashboard" component={() => <RequireZoho component={DashboardPage} />} />
       <Route path="/reconciliation" component={() => <RequireZoho component={() => <SectionPage title="Reconciliation" kicker="Payment control" description="A focused queue for every receipt that needs a confident match, from bank movement to the right invoice." icon={ClipboardCheck} />} />} />
       <Route path="/invoices" component={() => <RequireZoho component={ZohoInvoicesPage} />} />

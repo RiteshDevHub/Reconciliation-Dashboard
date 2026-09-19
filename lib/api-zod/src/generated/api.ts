@@ -34,6 +34,7 @@ export const ListZohoInvoicesResponseItem = zod.object({
   "invoiceId": zod.string(),
   "invoiceNumber": zod.string(),
   "customerName": zod.string(),
+  "description": zod.string().nullish(),
   "status": zod.string(),
   "invoiceDate": zod.string(),
   "dueDate": zod.string().nullish(),
