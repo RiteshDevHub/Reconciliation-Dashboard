@@ -1,4 +1,4 @@
-import { type ReactNode, useState, useEffect, useRef } from 'react';
+import { type ReactNode, useState, useEffect, useRef, createContext, useContext } from 'react';
 import {
   ArrowDownToLine,
   ArrowUpRight,
@@ -37,18 +37,24 @@ import { ReconciliationKanbanPage } from '@/pages/ReconciliationKanbanPage';
 import { ReconciliationDetailPage } from '@/pages/ReconciliationDetailPage';
 import { ReconciliationProvider } from '@/data/ReconciliationContext';
 import { Link, Route, Switch, useLocation, Router as WouterRouter, Redirect } from 'wouter';
-import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser } from '@clerk/react';
+import { ClerkProvider as RealClerkProvider, SignIn as RealSignIn, SignUp as RealSignUp, Show as RealShow, useClerk as useRealClerk, useUser as useRealUser } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
 import { useGetZohoConnectionStatus, getGetZohoConnectionStatusQueryKey, useListZohoInvoices, useSyncZohoInvoices, getListZohoInvoicesQueryKey, useConnectZohoDemo, useGetBankConnectionStatus } from '@workspace/api-client-react';
 
 const queryClient = new QueryClient();
 
-// --- Clerk Auth Setup ---
-const clerkPubKey = publishableKeyFromHost(
-  window.location.hostname,
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
+// --- Clerk & Local Auth Setup ---
+const rawClerkKey = (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || '').trim();
+const hasRealClerkKey = Boolean(
+  rawClerkKey &&
+  (rawClerkKey.startsWith('pk_test_') || rawClerkKey.startsWith('pk_live_')) &&
+  !rawClerkKey.includes('bG9jYWxob3N0')
 );
+
+const clerkPubKey = hasRealClerkKey
+  ? publishableKeyFromHost(window.location.hostname, rawClerkKey)
+  : '';
 
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -59,8 +65,138 @@ function stripBase(path: string): string {
     : path;
 }
 
-if (!clerkPubKey) {
-  throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env file');
+// Local mock user for offline / local development without external Clerk keys
+interface LocalUser {
+  id: string;
+  firstName: string;
+  fullName: string;
+  imageUrl?: string;
+  primaryEmailAddress: { emailAddress: string };
+}
+
+const defaultLocalUser: LocalUser = {
+  id: 'user_local_demo',
+  firstName: 'Aarav',
+  fullName: 'Aarav Patel',
+  primaryEmailAddress: { emailAddress: 'aarav@pixelcraft.in' },
+};
+
+const LocalAuthContext = createContext<{
+  isSignedIn: boolean;
+  user: LocalUser | null;
+  signOut: () => void;
+  signIn: () => void;
+}>({
+  isSignedIn: true,
+  user: defaultLocalUser,
+  signOut: () => {},
+  signIn: () => {},
+});
+
+function LocalAuthProvider({ children }: { children: ReactNode }) {
+  const [isSignedIn, setIsSignedIn] = useState(true);
+  return (
+    <LocalAuthContext.Provider
+      value={{
+        isSignedIn,
+        user: isSignedIn ? defaultLocalUser : null,
+        signOut: () => setIsSignedIn(false),
+        signIn: () => setIsSignedIn(true),
+      }}
+    >
+      {children}
+    </LocalAuthContext.Provider>
+  );
+}
+
+function useUser() {
+  if (hasRealClerkKey) {
+    return useRealUser();
+  }
+  const ctx = useContext(LocalAuthContext);
+  return {
+    isLoaded: true,
+    isSignedIn: ctx.isSignedIn,
+    user: ctx.user,
+  };
+}
+
+function useClerk() {
+  if (hasRealClerkKey) {
+    return useRealClerk();
+  }
+  const ctx = useContext(LocalAuthContext);
+  return {
+    signOut: (opts?: { redirectUrl?: string }) => {
+      ctx.signOut();
+      if (opts?.redirectUrl) {
+        window.location.href = opts.redirectUrl;
+      }
+    },
+    addListener: () => () => {},
+  };
+}
+
+function Show({ when, children }: { when: 'signed-in' | 'signed-out'; children: ReactNode }) {
+  if (hasRealClerkKey) {
+    return <RealShow when={when}>{children}</RealShow>;
+  }
+  const ctx = useContext(LocalAuthContext);
+  if (when === 'signed-in' && ctx.isSignedIn) return <>{children}</>;
+  if (when === 'signed-out' && !ctx.isSignedIn) return <>{children}</>;
+  return null;
+}
+
+function SignIn(props: any) {
+  if (hasRealClerkKey) {
+    return <RealSignIn {...props} />;
+  }
+  const [, setLocation] = useLocation();
+  const { signIn } = useContext(LocalAuthContext);
+  return (
+    <div className="w-[420px] max-w-full rounded-2xl border border-[#e4e0d7] bg-white p-8 shadow-xl text-center">
+      <div className="mx-auto mb-4 grid size-12 place-items-center rounded-2xl bg-[#d8f1e7] text-[#19774e]">
+        <Link2 size={24} />
+      </div>
+      <h2 className="text-[20px] font-semibold text-[#1c2430]">Local Dev Workspace</h2>
+      <p className="mt-2 text-[13px] text-[#636e7a]">Signed in as Aarav Patel (PixelCraft Technologies).</p>
+      <button
+        onClick={() => {
+          signIn();
+          setLocation('/dashboard');
+        }}
+        className="mt-6 w-full rounded-xl bg-[#2d8cff] py-3 text-[13px] font-semibold text-white shadow-md transition hover:bg-[#1877e4]"
+      >
+        Enter Workspace →
+      </button>
+    </div>
+  );
+}
+
+function SignUp(props: any) {
+  if (hasRealClerkKey) {
+    return <RealSignUp {...props} />;
+  }
+  const [, setLocation] = useLocation();
+  const { signIn } = useContext(LocalAuthContext);
+  return (
+    <div className="w-[420px] max-w-full rounded-2xl border border-[#e4e0d7] bg-white p-8 shadow-xl text-center">
+      <div className="mx-auto mb-4 grid size-12 place-items-center rounded-2xl bg-[#d8f1e7] text-[#19774e]">
+        <Link2 size={24} />
+      </div>
+      <h2 className="text-[20px] font-semibold text-[#1c2430]">Local Dev Workspace</h2>
+      <p className="mt-2 text-[13px] text-[#636e7a]">Signed in as Aarav Patel (PixelCraft Technologies).</p>
+      <button
+        onClick={() => {
+          signIn();
+          setLocation('/dashboard');
+        }}
+        className="mt-6 w-full rounded-xl bg-[#2d8cff] py-3 text-[13px] font-semibold text-white shadow-md transition hover:bg-[#1877e4]"
+      >
+        Enter Workspace →
+      </button>
+    </div>
+  );
 }
 
 const clerkAppearance = {
@@ -755,11 +891,18 @@ function AuthenticatedEntry() {
   if (zohoStatus.isError || bankStatus.isError) {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#f7f5ef] p-6 text-center">
-        <div className="w-full max-w-[400px] rounded-2xl border border-[#e4e0d7] bg-white p-6">
+        <div className="w-full max-w-[420px] rounded-2xl border border-[#e4e0d7] bg-white p-6 shadow-sm">
           <CircleAlert size={32} className="mx-auto mb-4 text-[#e39b4f]" />
-          <h2 className="text-[18px] font-semibold text-[#1c2430]">Workspace unavailable</h2>
-          <p className="mt-2 text-[13px] text-[#636e7a]">We couldn't check your integration setup.</p>
-          <button onClick={() => window.location.reload()} className="mt-5 w-full rounded-xl bg-[#2d8cff] py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#1877e4]">Retry</button>
+          <h2 className="text-[18px] font-semibold text-[#1c2430]">Backend API Offline</h2>
+          <p className="mt-2 text-[13px] text-[#636e7a]">The backend server is not running on port 5000. You can start the backend or explore with the built-in demo data.</p>
+          <div className="mt-5 space-y-2">
+            <Link href="/reconciliation" className="block w-full rounded-xl bg-[#2d8cff] py-2.5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[#1877e4]">
+              Explore Reconciliation (Demo Data) →
+            </Link>
+            <button onClick={() => window.location.reload()} className="w-full rounded-xl border border-[#d8d5ca] py-2.5 text-[13px] font-semibold text-[#4b5966] transition hover:bg-[#faf9f5]">
+              Retry API Connection
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -845,11 +988,18 @@ function ZohoConnectionGate({ component: Component }: { component: React.Compone
   if (isError) {
     return (
       <div className="min-h-[100dvh] bg-[#f7f5ef] flex flex-col items-center justify-center p-6 text-center">
-         <div className="rounded-2xl border border-[#e4e0d7] bg-white p-6 max-w-[400px]">
+         <div className="w-full max-w-[420px] rounded-2xl border border-[#e4e0d7] bg-white p-6 shadow-sm">
            <CircleAlert size={32} className="text-[#e39b4f] mx-auto mb-4" />
-           <h2 className="text-[18px] font-semibold text-[#1c2430]">Connection Error</h2>
-           <p className="mt-2 text-[13px] text-[#636e7a]">We couldn't verify your workspace connection.</p>
-           <button onClick={() => window.location.reload()} className="mt-5 w-full rounded-xl bg-[#2d8cff] py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#1877e4]">Retry</button>
+           <h2 className="text-[18px] font-semibold text-[#1c2430]">Backend API Offline</h2>
+           <p className="mt-2 text-[13px] text-[#636e7a]">The backend server is not running on port 5000. You can start the backend or explore with the built-in demo data.</p>
+           <div className="mt-5 space-y-2">
+             <Link href="/reconciliation" className="block w-full rounded-xl bg-[#2d8cff] py-2.5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[#1877e4]">
+               Explore Reconciliation (Demo Data) →
+             </Link>
+             <button onClick={() => window.location.reload()} className="w-full rounded-xl border border-[#d8d5ca] py-2.5 text-[13px] font-semibold text-[#4b5966] transition hover:bg-[#faf9f5]">
+               Retry Connection
+             </button>
+           </div>
          </div>
       </div>
     );
@@ -881,9 +1031,19 @@ function BankConnectionGate({ component: Component }: { component: React.Compone
   if (isError) {
     return (
       <div className="min-h-[100dvh] bg-[#f7f5ef] flex flex-col items-center justify-center p-6 text-center">
-        <CircleAlert size={30} className="text-[#e39b4f]" />
-        <h2 className="mt-4 text-[18px] font-semibold text-[#1c2430]">Bank connection unavailable</h2>
-        <button onClick={() => window.location.reload()} className="mt-5 rounded-xl bg-[#2d8cff] px-5 py-2.5 text-[13px] font-semibold text-white">Retry</button>
+        <div className="w-full max-w-[420px] rounded-2xl border border-[#e4e0d7] bg-white p-6 shadow-sm">
+          <CircleAlert size={30} className="mx-auto mb-4 text-[#e39b4f]" />
+          <h2 className="text-[18px] font-semibold text-[#1c2430]">Backend API Offline</h2>
+          <p className="mt-2 text-[13px] text-[#636e7a]">Start the backend on port 5000, or explore the dashboard with built-in client data.</p>
+          <div className="mt-5 space-y-2">
+            <Link href="/reconciliation" className="block w-full rounded-xl bg-[#2d8cff] py-2.5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[#1877e4]">
+              Explore Reconciliation (Demo Data) →
+            </Link>
+            <button onClick={() => window.location.reload()} className="w-full rounded-xl border border-[#d8d5ca] py-2.5 text-[13px] font-semibold text-[#4b5966] transition hover:bg-[#faf9f5]">
+              Retry Connection
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -1160,33 +1320,41 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
 
-  return (
-    <ClerkProvider
-      publishableKey={clerkPubKey}
-      proxyUrl={clerkProxyUrl}
-      appearance={clerkAppearance}
-      signInUrl={`${basePath}/sign-in`}
-      signUpUrl={`${basePath}/sign-up`}
-      localization={{
-        signIn: { start: { title: "Welcome to ClearMatch", subtitle: "Sign in to access your workspace" } },
-        signUp: { start: { title: "Create your workspace", subtitle: "Get started today" } },
-      }}
-      routerPush={(to) => setLocation(stripBase(to))}
-      routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
-    >
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <ClerkQueryClientCacheInvalidator />
-          <RoutedErrorBoundary>
-            <ReconciliationProvider>
-              <Router />
-            </ReconciliationProvider>
-          </RoutedErrorBoundary>
-          <Toaster />
-        </TooltipProvider>
-      </QueryClientProvider>
-    </ClerkProvider>
+  const appContent = (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        {hasRealClerkKey && <ClerkQueryClientCacheInvalidator />}
+        <RoutedErrorBoundary>
+          <ReconciliationProvider>
+            <Router />
+          </ReconciliationProvider>
+        </RoutedErrorBoundary>
+        <Toaster />
+      </TooltipProvider>
+    </QueryClientProvider>
   );
+
+  if (hasRealClerkKey) {
+    return (
+      <RealClerkProvider
+        publishableKey={clerkPubKey}
+        proxyUrl={clerkProxyUrl}
+        appearance={clerkAppearance}
+        signInUrl={`${basePath}/sign-in`}
+        signUpUrl={`${basePath}/sign-up`}
+        localization={{
+          signIn: { start: { title: "Welcome to ClearMatch", subtitle: "Sign in to access your workspace" } },
+          signUp: { start: { title: "Create your workspace", subtitle: "Get started today" } },
+        }}
+        routerPush={(to) => setLocation(stripBase(to))}
+        routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
+      >
+        {appContent}
+      </RealClerkProvider>
+    );
+  }
+
+  return <LocalAuthProvider>{appContent}</LocalAuthProvider>;
 }
 
 function App() {
